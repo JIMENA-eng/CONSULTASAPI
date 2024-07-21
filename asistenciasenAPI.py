@@ -5,6 +5,7 @@ import tkinter as tk
 import sqlite3
 import requests
 import datetime
+from fpdf import FPDF
 from datetime import datetime
 import pandas as pd
 from reportlab.lib.pagesizes import letter
@@ -177,6 +178,43 @@ miGenero=StringVar()
 miEstado_civil=StringVar()
 miDNI=StringVar()
 miFechaHora=StringVar()
+
+def exportar_a_pdf():
+    try:
+        # Conexión a la base de datos
+        miConexion = sqlite3.connect("asistencia.db")
+        miCursor = miConexion.cursor()
+        
+        # Consulta para obtener todos los registros
+        miCursor.execute("SELECT * FROM empleados")
+        registros = miCursor.fetchall()
+        
+        # Configuración del documento PDF
+        pdf = FPDF()
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        
+        # Títulos de las columnas
+        columnas = ["ID", "NOMBRES", "APELLIDO PATERNO", "APELLIDO MATERNO", "DNI", "GENERO", "ESTADO CIVIL", "FECHA Y HORA"]
+        pdf.set_fill_color(200, 220, 255)
+        for col in columnas:
+            pdf.cell(30, 10, col, 1, 0, 'C', 1)
+        
+        # Agregar registros al PDF
+        pdf.set_fill_color(255, 255, 255)
+        pdf.ln()
+        for row in registros:
+            for dato in row:
+                pdf.cell(30, 10, str(dato), 1, 0, 'C')
+            pdf.ln()
+        
+        # Guardar el PDF
+        pdf.output("registros_asistencia.pdf")
+        messagebox.showinfo("Exportar a PDF", "Datos exportados a registros_asistencia.pdf")
+        
+    except sqlite3.Error as error:
+        messagebox.showerror("Error", f"Error al exportar a PDF: {error}")
 
 def diario():
     def mostrar_registros_diarios():
@@ -416,7 +454,7 @@ def ventana_administrador():
 
     expomenu=Menu(menubar, tearoff=0)
     expomenu.add_command(label="exportar datos a excel")
-    expomenu.add_command(label="descargar datos en pdf")
+    expomenu.add_command(label="descargar datos en pdf", command=exportar_a_pdf)
     menubar.add_cascade(label="exportar", menu=expomenu)
     
     subirmenu=Menu(menubar, tearoff=0)
