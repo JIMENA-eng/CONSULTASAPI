@@ -171,15 +171,6 @@ def DNI():
 
 
 
-miID=StringVar()
-miNombres=StringVar()
-miApellidoPaterno=StringVar()
-miApellidoMaterno=StringVar()
-miGenero=StringVar()
-miEstado_civil=StringVar()
-miDNI=StringVar()
-miFechaHora=StringVar()
-
 def exportar_a_pdf():
     try:
         # Conexión a la base de datos
@@ -190,8 +181,14 @@ def exportar_a_pdf():
         miCursor.execute("SELECT * FROM empleados")
         registros = miCursor.fetchall()
         
-        # Configuración del documento PDF
-        pdf = FPDF()
+        # Configuración del documento PDF con orientación vertical
+        class PDF(FPDF):
+            def __init__(self):
+                super().__init__()
+                self.format = (210, 297)  # Tamaño A4 en orientación vertical (297 mm x 210 mm)
+                self.orientation = 'L'    # Orientación vertical
+
+        pdf = PDF()
         pdf.set_auto_page_break(auto=True, margin=15)
         pdf.add_page()
         pdf.set_font("Arial", size=12)
@@ -211,12 +208,12 @@ def exportar_a_pdf():
             pdf.ln()
         
         # Guardar el PDF
-        pdf.output("registros_asistencia.pdf")
-        messagebox.showinfo("Exportar a PDF", "Datos exportados a registros_asistencia.pdf")
+        pdf.output("registros_asistencia_vertical.pdf")
+        messagebox.showinfo("Exportar a PDF", "Datos exportados a registros_asistencia_vertical.pdf")
         
     except sqlite3.Error as error:
         messagebox.showerror("Error", f"Error al exportar a PDF: {error}")
-
+        
 def exportar_a_excel():
     try:
         # Conexión a la base de datos
@@ -370,6 +367,15 @@ def ventana_administrador():
         miGenero.set("")
         miEstado_civil.set("")
         
+    miID=StringVar()
+    miNombres=StringVar()
+    miApellidoPaterno=StringVar()
+    miApellidoMaterno=StringVar()
+    miGenero=StringVar()
+    miEstado_civil=StringVar()
+    miDNI=StringVar()
+    
+            
 
     def mensaje():
         acerca='''
