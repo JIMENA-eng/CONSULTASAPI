@@ -6,6 +6,7 @@ import sqlite3
 import requests
 import datetime
 from fpdf import FPDF
+import xlsxwriter
 from datetime import datetime
 import pandas as pd
 from reportlab.lib.pagesizes import letter
@@ -215,6 +216,38 @@ def exportar_a_pdf():
         
     except sqlite3.Error as error:
         messagebox.showerror("Error", f"Error al exportar a PDF: {error}")
+
+def exportar_a_excel():
+    try:
+        # Conexión a la base de datos
+        miConexion = sqlite3.connect("asistencia.db")
+        miCursor = miConexion.cursor()
+        
+        # Consulta para obtener todos los registros
+        miCursor.execute("SELECT * FROM empleados")
+        registros = miCursor.fetchall()
+        
+        # Configuración del archivo Excel
+        workbook = xlsxwriter.Workbook('registros_asistencia.xlsx')
+        worksheet = workbook.add_worksheet()
+        
+        # Encabezados de las columnas
+        columnas = ["ID", "NOMBRES", "APELLIDO PATERNO", "APELLIDO MATERNO", "DNI", "GENERO", "ESTADO CIVIL", "FECHA Y HORA"]
+        for col_num, col_title in enumerate(columnas):
+            worksheet.write(0, col_num, col_title)
+        
+        # Escribir registros en el archivo Excel
+        for row_num, row_data in enumerate(registros):
+            for col_num, cell_data in enumerate(row_data):
+                worksheet.write(row_num + 1, col_num, cell_data)
+        
+        # Cerrar el archivo Excel
+        workbook.close()
+        messagebox.showinfo("Exportar a Excel", "Datos exportados a registros_asistencia.xlsx")
+        
+    except sqlite3.Error as error:
+        messagebox.showerror("Error", f"Error al exportar a Excel: {error}")
+        
 
 def diario():
     def mostrar_registros_diarios():
@@ -453,7 +486,7 @@ def ventana_administrador():
     menubar.add_cascade(label="reportes", menu=repormenu)
 
     expomenu=Menu(menubar, tearoff=0)
-    expomenu.add_command(label="exportar datos a excel")
+    expomenu.add_command(label="exportar datos a excel", command=exportar_a_excel)
     expomenu.add_command(label="descargar datos en pdf", command=exportar_a_pdf)
     menubar.add_cascade(label="exportar", menu=expomenu)
     
