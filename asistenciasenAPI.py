@@ -8,10 +8,11 @@ import datetime
 from fpdf import FPDF
 import xlsxwriter
 from datetime import datetime
-import pandas as pd
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
 from tkinter import font
+import cv2
+import tempfile
+from PIL import Image, ImageTk
+from pyzbar.pyzbar import decode
 
 
 def inicio_dmin():
@@ -244,7 +245,84 @@ def exportar_a_excel():
         
     except sqlite3.Error as error:
         messagebox.showerror("Error", f"Error al exportar a Excel: {error}")
-        
+
+def escaneo_camara():
+    def escanear_dni_camara():
+        try:
+            # Configurar la captura de video desde la cámara
+            cap = cv2.VideoCapture(0)
+
+            # Función para actualizar la imagen de la cámara en el widget tkinter
+            def actualizar_camara():
+                ret, frame = cap.read()
+                if ret:
+                    # Convertir la imagen de OpenCV a formato de imagen de PIL
+                    img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    img_pil = Image.fromarray(img)
+                    img_tk = ImageTk.PhotoImage(image=img_pil)
+
+                    # Actualizar la etiqueta con la imagen de la cámara
+                    lbl_camara.img_tk = img_tk  # Mantener una referencia para evitar que Python la elimine automáticamente
+                    lbl_camara.config(image=img_tk)
+                
+                # Llamar a esta función de nuevo después de 10 ms
+                lbl_camara.after(10, actualizar_camara)
+
+            # Crear la ventana principal de tkinter
+            root = tk.Tk()
+            root.title("Escaneo de DNI con cámara")
+            root.geometry("800x600")
+            root.configure(background='lightgreen')
+
+            # Etiqueta para mostrar la imagen de la cámara
+            lbl_camara = tk.Label(root)
+            lbl_camara.pack(padx=10, pady=10)
+
+            # Botón para escanear el código de barras del DNI con la cámara
+            btn_escanear = tk.Button(root, text="Escanear DNI", command=lambda: escanear_dni(cap))
+            btn_escanear.pack(pady=20)
+
+            # Función para escanear el código de barras del DNI
+            def escanear_dni(cap):
+                try:
+                    # Capturar un solo fotograma
+                    ret, frame = cap.read()
+                    
+                    # Guardar la imagen en un archivo temporal
+                    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".jpg")
+                    cv2.imwrite(temp_file.name, frame)
+                    
+                    # Cargar la imagen con Pillow y convertirla a escala de grises
+                    imagen = Image.open(temp_file.name).convert('L')
+                    
+                    # Decodificar el código de barras usando pyzbar
+                    resultado = decode(imagen)
+                    
+                    if resultado:
+                        # Mostrar el código de barras encontrado
+                        codigo = resultado[0].data.decode('utf-8')
+                        messagebox.showinfo("Escaneo de DNI", f"Código de barras encontrado:\n{codigo}")
+                    else:
+                        messagebox.showinfo("Escaneo de DNI", "No se encontró ningún código de barras válido.")
+                
+                except Exception as e:
+                    messagebox.showerror("Error", f"Error al escanear el código de barras: {str(e)}")
+
+            # Iniciar la actualización de la cámara
+            actualizar_camara()
+
+            # Ejecutar la interfaz gráfica de tkinter
+            root.mainloop()
+
+            # Liberar la captura de la cámara al cerrar la ventana
+            cap.release()
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al iniciar la cámara: {str(e)}")
+
+    # Llamar a la función para escanear el DNI con la cámara
+    escanear_dni_camara()
+
 
 def diario():
     def mostrar_registros_diarios():
@@ -500,7 +578,8 @@ def ventana_administrador():
     subirmenu.add_command(label="subir documento")
     
     lectormenu=Menu(menubar, tearoff=0)
-    lectormenu.add_command(label="lector digiatal de dni")
+    lectormenu.add_command(label="escaneo por camara de computadora", command=escaneo_camara)
+    lectormenu.add_command(label="lector digital de dni")
     menubar.add_cascade(label="escaneo", menu=lectormenu)
 
 
