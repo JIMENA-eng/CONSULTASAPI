@@ -14,7 +14,7 @@ import cv2
 from PIL import Image, ImageTk
 from pyzbar.pyzbar import decode
 import tempfile
-
+import pandas as pd
 
 def inicio_dmin():
     top.destroy()
@@ -470,6 +470,41 @@ def reportes():
 
     btn_mensuales = tk.Button(root, text="Mostrar Registros Mensuales", command=mostrar_registros_mensuales)
     btn_mensuales.pack(pady=10)
+def cargar_a_la_data():
+    
+# Nombre del archivo Excel a cargar
+    archivo_excel = 'empleados.xlsx'
+
+    # Conexión a la base de datos SQLite
+    miConexion = sqlite3.connect("asistencia.db")
+    miCursor = miConexion.cursor()
+
+    # Función para cargar datos desde Excel a SQLite
+    def cargar_desde_excel(archivo, tabla):
+        try:
+            # Leer el archivo Excel en un DataFrame de pandas
+            df = pd.read_excel(archivo)
+
+            # Insertar filas en la base de datos
+            for index, row in df.iterrows():
+                valores = tuple(row)
+                miCursor.execute(f"INSERT INTO {tabla} VALUES (null,?,?,?,?,?,?,?,datetime('now'))", valores)
+
+            # Guardar cambios en la base de datos
+            miConexion.commit()
+            print("Datos cargados exitosamente desde Excel a la base de datos.")
+
+        except Exception as e:
+            print(f"Error al cargar desde Excel a la base de datos: {str(e)}")
+            miConexion.rollback()
+
+        finally:
+            # Cerrar la conexión a la base de datos
+            miConexion.close()
+
+    # Llamar a la función para cargar los datos desde Excel
+    cargar_desde_excel(archivo_excel, 'empleados')
+
 
 def ventan_reportes():
 
@@ -681,13 +716,18 @@ def ventana_administrador():
     menubar.add_cascade(label="exportar", menu=expomenu)
     
     subirmenu=Menu(menubar, tearoff=0)
-    subirmenu.add_command(label="subir documento")
+    subirmenu.add_command(label="subir documento", command=cargar_a_la_data)
+    subirmenu.add_cascade(label="subir archivo excel", menu=subirmenu)
     
     lectormenu=Menu(menubar, tearoff=0)
     lectormenu.add_command(label="escaneo por camara de computadora", command=escaneo_camara)
     lectormenu.add_command(label="escaneo por archivos", command=escaneo_archivos)
     lectormenu.add_command(label="lector digital de dni")
     menubar.add_cascade(label="escaneo", menu=lectormenu)
+    
+    subirmenu=Menu(menubar, tearoff=0)
+    subirmenu.add_command(label="subir archivo de excel", command=cargar_a_la_data)
+    menubar.add_cascade(label="subir archivos", menu=subirmenu)
 
 
     ayudamenu=Menu(menubar, tearoff=0)
