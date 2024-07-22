@@ -812,9 +812,26 @@ def ventana_administrador():
             mostrar()
         except sqlite3.Error as error:
             messagebox.showerror("ERROR", f"Error al borrar el registro: {error}")
-            
-    
 
+    def buscar_por_dni():
+        def ejecutar_busqueda():
+            dni = miDNI.get()
+            try:
+                miConexion = sqlite3.connect("asistencia.db")
+                miCursor = miConexion.cursor()
+                miCursor.execute("SELECT * FROM empleados WHERE DNI=?", (dni,))
+                registros = miCursor.fetchall()
+                for row in tree.get_children():
+                    tree.delete(row)
+                if registros:
+                    for registro in registros:
+                        tree.insert("", "end", text=registro[0], values=(registro[1], registro[2], registro[3], registro[4], registro[5], registro[6], registro[7]))
+                else:
+                    messagebox.showinfo("Sin resultados", f"No se encontraron registros con el DNI {dni}.")
+            except sqlite3.Error as error:
+                messagebox.showerror("Error", f"Error al buscar por DNI: {error}")
+        
+        ejecutar_busqueda()
         
     tree = ttk.Treeview(height=10, columns=('#0', '#1', '#2', '#3', '#4', '#5', '#6', '#7'))
     tree.place(x=0, y=300)
@@ -888,6 +905,12 @@ def ventana_administrador():
     l2.place(x=50,y=10)
     e2=Entry(root,textvariable=miNombres, width=50)
     e2.place(x=100,y=10)
+     
+    b2=Button(root, text="BUSCAR", command=buscar_por_dni)
+    b2.place(x=800,y=10)
+    r2=Entry(root, width=10)
+    r2.place(x=850, y=10)
+    
 
     l3=Label(root,text="APELLIDO PATERNO")
     l3.place(x=50,y=40)
@@ -922,7 +945,7 @@ def ventana_administrador():
     b3.place(x=350, y=250)
     b4=Button(root, text="eliminar registro", bg="blue", command=borrar)
     b4.place(x=500,y=250)
-
+   
     root.config(menu=menubar)
     conexionBBDD()
 
