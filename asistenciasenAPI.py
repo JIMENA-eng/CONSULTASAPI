@@ -470,41 +470,62 @@ def reportes():
 
     btn_mensuales = tk.Button(root, text="Mostrar Registros Mensuales", command=mostrar_registros_mensuales)
     btn_mensuales.pack(pady=10)
-def cargar_a_la_data():
     
-# Nombre del archivo Excel a cargar
-    archivo_excel = 'empleados.xlsx'
-
-    # Conexión a la base de datos SQLite
-    miConexion = sqlite3.connect("asistencia.db")
-    miCursor = miConexion.cursor()
-
-    # Función para cargar datos desde Excel a SQLite
-    def cargar_desde_excel(archivo, tabla):
+    
+def cargar_a_la_data():
+    def seleccionar_y_cargar_excel():
         try:
-            # Leer el archivo Excel en un DataFrame de pandas
-            df = pd.read_excel(archivo)
+            # Crear ventana de selección de archivo
+            root = tk.Tk()
+            root.withdraw()  # Ocultar la ventana principal de tkinter
 
-            # Insertar filas en la base de datos
+            # Obtener el archivo Excel seleccionado por el usuario
+            archivo_excel = filedialog.askopenfilename(
+                title="Seleccionar archivo Excel",
+                filetypes=[("Archivos de Excel", "*.xlsx;*.xls"), ("Todos los archivos", "*.*")]
+            )
+
+            if not archivo_excel:
+                return  # Salir si no se selecciona ningún archivo
+
+            # Leer el archivo Excel en un DataFrame de pandas
+            df = pd.read_excel(archivo_excel)
+
+            # Conexión a la base de datos SQLite
+            miConexion = sqlite3.connect("asistencia.db")
+            miCursor = miConexion.cursor()
+
+            # Obtener la fecha y hora actual
+            fecha_hora_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            # Iterar sobre las filas del DataFrame y cargar en la base de datos
+            registros_insertados = 0
             for index, row in df.iterrows():
                 valores = tuple(row)
-                miCursor.execute(f"INSERT INTO {tabla} VALUES (null,?,?,?,?,?,?,?,datetime('now'))", valores)
+                valores += (fecha_hora_actual,)  # Agregar la fecha y hora actual
+                miCursor.execute("INSERT INTO empleados (NOMBRES, APELLIDO_PATERNO, APELLIDO_MATERNO, DNI, GENERO, ESTADO_CIVIL, FECHA_HORA) VALUES (?, ?, ?, ?, ?, ?, ?)", valores)
+                registros_insertados += 1
 
             # Guardar cambios en la base de datos
             miConexion.commit()
-            print("Datos cargados exitosamente desde Excel a la base de datos.")
-
-        except Exception as e:
-            print(f"Error al cargar desde Excel a la base de datos: {str(e)}")
-            miConexion.rollback()
-
-        finally:
-            # Cerrar la conexión a la base de datos
             miConexion.close()
 
-    # Llamar a la función para cargar los datos desde Excel
-    cargar_desde_excel(archivo_excel, 'empleados')
+            # Mostrar mensaje de éxito
+            messagebox.showinfo("Éxito", f"Se han insertado {registros_insertados} registros desde el archivo Excel.")
 
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al cargar desde Excel a la base de datos: {str(e)}")
+            if 'miConexion' in locals():
+                miConexion.rollback()  # Revertir cambios si ocurre un error
+            else:
+                messagebox.showerror("Error", "No se pudo establecer conexión con la base de datos.")
+
+    # Función principal para ejecutar la selección y carga de Excel
+    def main():
+        seleccionar_y_cargar_excel()
+
+    if __name__ == "__main__":
+        main()
 
 def ventan_reportes():
 
@@ -782,6 +803,7 @@ def ventana_administrador():
 
 
 if __name__ == "__main__":
+    
     root =Tk()
     top.mainloop()
     root.mainloop()
