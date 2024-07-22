@@ -132,7 +132,7 @@ def DNI():
     def guardar_en_db(data, genero, estado_civil):
         try:
             # Conectar a la base de datos
-            conn = sqlite3.connect('asistencia')
+            conn = sqlite3.connect('asistencia.db')
             cursor = conn.cursor()
 
             # Obtener la fecha y hora actual
@@ -140,7 +140,7 @@ def DNI():
 
             # Insertar los datos en la tabla 'asistencia' junto con la fecha y hora
             cursor.execute('''
-                INSERT INTO asistencia (NOMBRES, APELLIDO_PATERNO, APELLIDO_MATERNO, DNI, GENERO, ESTADO_CIVIL, FECHA_HORA)
+                INSERT INTO empleados (NOMBRES, APELLIDO_PATERNO, APELLIDO_MATERNO, DNI, GENERO, ESTADO_CIVIL, FECHA_HORA)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             ''', (data["nombres"], data["apellidoPaterno"], data["apellidoMaterno"], data["dni"], genero, estado_civil, fecha_hora_actual))
 
