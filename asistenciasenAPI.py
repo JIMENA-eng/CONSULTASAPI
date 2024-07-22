@@ -9,10 +9,11 @@ from fpdf import FPDF
 import xlsxwriter
 from datetime import datetime
 from tkinter import font
+from tkinter import filedialog, messagebox
 import cv2
-import tempfile
 from PIL import Image, ImageTk
 from pyzbar.pyzbar import decode
+import tempfile
 
 
 def inicio_dmin():
@@ -246,82 +247,133 @@ def exportar_a_excel():
     except sqlite3.Error as error:
         messagebox.showerror("Error", f"Error al exportar a Excel: {error}")
 
-def escaneo_camara():
-    def escanear_dni_camara():
-        try:
-            # Configurar la captura de video desde la cámara
-            cap = cv2.VideoCapture(0)
+def  escaneo_camara ():
+   def escanear_dni_camara():
+    try:
+        # Configurar la captura de video desde la cámara
+        cap = cv2.VideoCapture(0)
 
-            # Función para actualizar la imagen de la cámara en el widget tkinter
-            def actualizar_camara():
+        # Función para actualizar la imagen de la cámara en el widget tkinter
+        def actualizar_camara():
+            ret, frame = cap.read()
+            if ret:
+                # Convertir la imagen de OpenCV a formato de imagen de PIL
+                img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                img_pil = Image.fromarray(img)
+                img_tk = ImageTk.PhotoImage(image=img_pil)
+
+                # Actualizar la etiqueta con la imagen de la cámara
+                lbl_camara.img_tk = img_tk  # Mantener una referencia para evitar que Python la elimine automáticamente
+                lbl_camara.config(image=img_tk)
+
+            # Llamar a esta función nuevamente después de 10 ms
+            lbl_camara.after(10, actualizar_camara)
+
+        # Crear la ventana principal de tkinter
+        root = tk.Tk()
+        root.title("Escaneo de DNI con cámara")
+        root.geometry("800x600")
+        root.configure(bg='light green')
+
+        # Etiqueta para mostrar la imagen de la cámara
+        lbl_camara = tk.Label(root)
+        lbl_camara.pack(padx=10, pady=10)
+
+        # Botón para escanear el código de barras del DNI con la cámara
+        btn_escanear = tk.Button(root, text="Escanear DNI", command=lambda: escanear_dni(cap))
+        btn_escanear.pack(pady=20)
+
+        # Función para escanear el código de barras del DNI
+        def escanear_dni(cap):
+            try:
+                # Capturar una sola imagen
                 ret, frame = cap.read()
-                if ret:
-                    # Convertir la imagen de OpenCV a formato de imagen de PIL
-                    img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    img_pil = Image.fromarray(img)
-                    img_tk = ImageTk.PhotoImage(image=img_pil)
 
-                    # Actualizar la etiqueta con la imagen de la cámara
-                    lbl_camara.img_tk = img_tk  # Mantener una referencia para evitar que Python la elimine automáticamente
-                    lbl_camara.config(image=img_tk)
-                
-                # Llamar a esta función de nuevo después de 10 ms
-                lbl_camara.after(10, actualizar_camara)
+                # Guardar la imagen en un archivo temporal
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".jpg")
+                cv2.imwrite(temp_file.name, frame)
 
-            # Crear la ventana principal de tkinter
-            root = tk.Tk()
-            root.title("Escaneo de DNI con cámara")
-            root.geometry("800x600")
-            root.configure(background='lightgreen')
+                # Cargar la imagen con Pillow y convertirla a escala de grises
+                imagen = Image.open(temp_file.name).convert('L')
 
-            # Etiqueta para mostrar la imagen de la cámara
-            lbl_camara = tk.Label(root)
-            lbl_camara.pack(padx=10, pady=10)
+                # Decodificar el código de barras usando pyzbar
+                resultado = decode(imagen)
 
-            # Botón para escanear el código de barras del DNI con la cámara
-            btn_escanear = tk.Button(root, text="Escanear DNI", command=lambda: escanear_dni(cap))
-            btn_escanear.pack(pady=20)
+                if resultado:
+                    # Mostrar el código de barras encontrado
+                    codigo = resultado[0].data.decode('utf-8')
+                    messagebox.showinfo("Escaneo de DNI", f"Código de barras encontrado:\n{codigo}")
+                    guardar_en_base_de_datos(codigo)
+                else:
+                    messagebox.showinfo("Escaneo de DNI", "No se encontró ningún código de barras válido.")
 
-            # Función para escanear el código de barras del DNI
-            def escanear_dni(cap):
-                try:
-                    # Capturar un solo fotograma
-                    ret, frame = cap.read()
-                    
-                    # Guardar la imagen en un archivo temporal
-                    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".jpg")
-                    cv2.imwrite(temp_file.name, frame)
-                    
-                    # Cargar la imagen con Pillow y convertirla a escala de grises
-                    imagen = Image.open(temp_file.name).convert('L')
-                    
-                    # Decodificar el código de barras usando pyzbar
-                    resultado = decode(imagen)
-                    
-                    if resultado:
-                        # Mostrar el código de barras encontrado
-                        codigo = resultado[0].data.decode('utf-8')
-                        messagebox.showinfo("Escaneo de DNI", f"Código de barras encontrado:\n{codigo}")
-                    else:
-                        messagebox.showinfo("Escaneo de DNI", "No se encontró ningún código de barras válido.")
-                
-                except Exception as e:
-                    messagebox.showerror("Error", f"Error al escanear el código de barras: {str(e)}")
+            except Exception as e:
+                messagebox.showerror("Error", f"Error al escanear el código de barras: {str(e)}")
 
-            # Iniciar la actualización de la cámara
-            actualizar_camara()
+        # Función para guardar los datos en la base de datos
+        def guardar_en_base_de_datos(dni):
+            # Aquí deberías adaptar la lógica para guardar en tu base de datos SQLite
+            miConexion = sqlite3.connect("asistencia.db")
+            miCursor = miConexion.cursor()
 
-            # Ejecutar la interfaz gráfica de tkinter
-            root.mainloop()
+            # Supongamos que aquí se guarda el número de DNI y la fecha actual en la tabla empleados
+            now = datetime.now()
+            fecha_hora = now.strftime("%Y-%m-%d %H:%M:%S")
+            miCursor.execute('''INSERT INTO empleados (DNI, FECHA_HORA)
+                                VALUES (?, ?)''', (dni, fecha_hora))
+            miConexion.commit()
 
-            # Liberar la captura de la cámara al cerrar la ventana
-            cap.release()
+            miConexion.close()
 
-        except Exception as e:
-            messagebox.showerror("Error", f"Error al iniciar la cámara: {str(e)}")
+        # Iniciar la actualización de la cámara
+        actualizar_camara()
 
-    # Llamar a la función para escanear el DNI con la cámara
+        # Ejecutar la interfaz gráfica de tkinter
+        root.mainloop()
+
+        # Liberar la captura de la cámara al cerrar la ventana
+        cap.release()
+
+    except Exception as e:
+        messagebox.showerror("Error", f"Error al iniciar la cámara: {str(e)}")
+
+# Llamar a la función para escanear el DNI con la cámara
     escanear_dni_camara()
+
+def escaneo_archivos():
+    def escanear_dni():
+        try:
+            # Abrir un cuadro de diálogo para seleccionar la imagen del DNI
+            ruta_imagen = filedialog.askopenfilename(title="Seleccionar imagen del DNI",
+                                                    filetypes=(("Archivos de imagen", "*.jpg;*.jpeg;*.png;*.bmp"), ("Todos los archivos", "*.*")))
+            if not ruta_imagen:
+                return  # Si no se selecciona ninguna imagen, salir
+            
+            # Cargar la imagen y convertirla a escala de grises
+            imagen = Image.open(ruta_imagen).convert('L')
+            
+            # Decodificar el código de barras usando pyzbar
+            resultado = decode(imagen)
+            
+            if resultado:
+                # Mostrar el código de barras encontrado
+                codigo = resultado[0].data.decode('utf-8')
+                messagebox.showinfo("Escaneo de DNI", f"Código de barras encontrado:\n{codigo}")
+            else:
+                messagebox.showinfo("Escaneo de DNI", "No se encontró ningún código de barras válido en la imagen.")
+        
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al escanear el código de barras: {str(e)}")
+
+    # Configuración de la ventana principal
+    root = tk.Tk()
+    root.title("Escaneo de DNI")
+    root.geometry("400x200")
+    root.configure(background='lightgreen')
+
+    # Botón para escanear el código de barras del DNI
+    btn_escanear = tk.Button(root, text="Escanear DNI", command=escanear_dni)
+    btn_escanear.pack(pady=20)
 
 
 def diario():
@@ -579,6 +631,7 @@ def ventana_administrador():
     
     lectormenu=Menu(menubar, tearoff=0)
     lectormenu.add_command(label="escaneo por camara de computadora", command=escaneo_camara)
+    lectormenu.add_command(label="escaneo por archivos", command=escaneo_archivos)
     lectormenu.add_command(label="lector digital de dni")
     menubar.add_cascade(label="escaneo", menu=lectormenu)
 
