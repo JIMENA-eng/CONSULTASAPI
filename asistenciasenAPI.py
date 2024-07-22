@@ -67,20 +67,20 @@ bt_usuario.pack(pady=20)
 
 def DNI():
     def dni_consultar():
-        dni=en_dni.get()
+        dni = en_dni.get()
         if not dni:
-            messagebox.showwarning('advertencia', 'por favor ingrese un numero de DNI')
+            messagebox.showwarning('Advertencia', 'Por favor ingrese un número de DNI')
             return
         try:
-            url=f'https://dniruc.apisperu.com/api/v1/dni/{dni}?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6IkVjYXlvbWFAZ21haWwuY29tIn0.4w94GBUGg1bJmN50EiHBd1qHYEpnmjmS93lRP_7Nsr8'
+            url = f'https://dniruc.apisperu.com/api/v1/dni/{dni}?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6IkVjYXlvbWFAZ21haWwuY29tIn0.4w94GBUGg1bJmN50EiHBd1qHYEpnmjmS93lRP_7Nsr8'
             response = requests.get(url)
             response.raise_for_status()
-            
+
             data = response.json()
-            
+
             if response.status_code == 200:
-                if not data ['success']:
-                    messagebox.showinfo("DNI no registrado", "el DNI no se encuentra registrado")
+                if not data['success']:
+                    messagebox.showinfo("DNI no registrado", "El DNI no se encuentra registrado")
                 else:
                     mostrar_datos(data)
             else:
@@ -88,39 +88,43 @@ def DNI():
 
         except requests.exceptions.RequestException as e:
             messagebox.showerror("Error en la consulta", f"Error de conexión: {str(e)}")
+
     def mostrar_datos(data):
         wen.destroy()
-        ven_da=tk.Toplevel()
+        ven_da = tk.Toplevel()
         ven_da.title('DATOS DEL DNI')
-        ven_da.geometry("500x500")
-    
-        tk.Label(ven_da, text=f'DNI: {data["dni"]}').pack(padx=10, pady=5)
-        tk.Label(ven_da, text=f'Nombres: {data["nombres"]}').pack(padx=10, pady=5)
-        tk.Label(ven_da, text=f'Apellido Paterno: {data["apellidoPaterno"]}').pack(padx=10, pady=5)
-        tk.Label(ven_da, text=f'Apellido Materno: {data["apellidoMaterno"]}').pack(padx=10, pady=5)
+        ven_da.geometry("500x600")
+        ven_da.configure(background='lightblue')
+
+        # Configurar estilo personalizado con fuente "MV Boli"
+        style = ttk.Style()
+        style.configure('TLabel', font=('MV Boli', 12))
+        style.configure('TButton', font=('MV Boli', 12))
+
+        ttk.Label(ven_da, text=f'DNI: {data["dni"]}').pack(padx=10, pady=5)
+        ttk.Label(ven_da, text=f'Nombres: {data["nombres"]}').pack(padx=10, pady=5)
+        ttk.Label(ven_da, text=f'Apellido Paterno: {data["apellidoPaterno"]}').pack(padx=10, pady=5)
+        ttk.Label(ven_da, text=f'Apellido Materno: {data["apellidoMaterno"]}').pack(padx=10, pady=5)
 
         # Sección para ingresar el estado civil
-        frame_estado_civil = tk.LabelFrame(ven_da, text="Estado Civil")
+        frame_estado_civil = ttk.LabelFrame(ven_da, text="Estado Civil")
         frame_estado_civil.pack(padx=10, pady=5, fill="both", expand="yes")
 
         estado_civil_options = ["Soltero/a", "Casado/a", "Viudo/a", "Divorciado/a", "Conviviente", "Otro"]
-
         estado_civil = tk.StringVar()
         estado_civil.set("")  # Valor inicial
 
         for option in estado_civil_options:
-            tk.Radiobutton(frame_estado_civil, text=option, variable=estado_civil, value=option).pack(anchor="w")
+            ttk.Radiobutton(frame_estado_civil, text=option, variable=estado_civil, value=option).pack(anchor="w")
 
         # Botones de género (ejemplo básico)
-        tk.Label(ven_da, text="Género:").pack(padx=10, pady=5)
-        tk.Button(ven_da, text="Femenino", command=lambda: guardar_en_db(data, "Femenino", estado_civil.get())).pack(padx=10,pady=5)
-        tk.Button(ven_da, text="Masculino", command=lambda: guardar_en_db(data, "Masculino", estado_civil.get())).pack(pady=5)
-        tk.Button(ven_da, text="Otros", command=lambda: guardar_en_db(data, "Otros", estado_civil.get())).pack(pady=5)
+        ttk.Label(ven_da, text="Género:").pack(padx=10, pady=5)
+        ttk.Button(ven_da, text="Femenino", command=lambda: guardar_en_db(data, "Femenino", estado_civil.get())).pack(pady=5)
+        ttk.Button(ven_da, text="Masculino", command=lambda: guardar_en_db(data, "Masculino", estado_civil.get())).pack(pady=5)
+        ttk.Button(ven_da, text="Otros", command=lambda: guardar_en_db(data, "Otros", estado_civil.get())).pack(pady=5)
 
-        # Botón para cerrar ventana
-        btn_cerrar = tk.Button(ven_da, text='registrar', command=ven_da.destroy)
-        btn_cerrar.pack(pady=10)
-        
+       
+
     def guardar_en_db(data, genero, estado_civil):
         try:
             # Conectar a la base de datos
@@ -130,7 +134,7 @@ def DNI():
             # Obtener la fecha y hora actual
             fecha_hora_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-            # Insertar los datos en la tabla 'asistencia' junto con la fecha y hora
+            # Insertar los datos en la tabla 'empleados' junto con la fecha y hora
             cursor.execute('''
                 INSERT INTO empleados (NOMBRES, APELLIDO_PATERNO, APELLIDO_MATERNO, DNI, GENERO, ESTADO_CIVIL, FECHA_HORA)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -146,24 +150,26 @@ def DNI():
             messagebox.showerror("Error al guardar", f"Error de SQLite: {str(e)}")
 
     # Crear la ventana principal
-    wen = Tk()
+    wen = tk.Tk()
     wen.title('Consulta de DNI')
-    wen.geometry("300x250")
+    wen.geometry("300x150")
+    wen.configure(background='lightblue')
 
     # Etiqueta y entrada para ingresar el número de DNI
-    label_dni = tk.Label(wen, text='Ingrese el número de DNI:')
+    label_dni = ttk.Label(wen, text='Ingrese el número de DNI:')
     label_dni.pack(pady=10)
 
-    en_dni = tk.Entry(wen)
+    en_dni = ttk.Entry(wen)
     en_dni.pack(pady=5)
 
     # Botón para consultar el DNI (se activará también con Enter)
-    btn_consultar = tk.Button(wen, text='Consultar DNI', command=dni_consultar)
+    btn_consultar = ttk.Button(wen, text='Consultar DNI', command=dni_consultar)
     btn_consultar.pack(pady=10)
 
     # Atajo para activar la función dni_consultar al presionar Enter en la entrada de texto
     en_dni.bind('<Return>', lambda event: dni_consultar())
 
+    wen.mainloop()
 
 
 def exportar_a_pdf():
@@ -176,39 +182,45 @@ def exportar_a_pdf():
         miCursor.execute("SELECT * FROM empleados")
         registros = miCursor.fetchall()
         
-        # Configuración del documento PDF con orientación vertical
+        # Configuración del documento PDF con orientación horizontal
         class PDF(FPDF):
             def __init__(self):
-                super().__init__()
-                self.format = (210, 297)  # Tamaño A4 en orientación vertical (297 mm x 210 mm)
-                self.orientation = 'L'    # Orientación vertical
-
+                super().__init__(orientation='L')  # Orientación horizontal
+                self.set_auto_page_break(auto=True, margin=15)
+        
         pdf = PDF()
-        pdf.set_auto_page_break(auto=True, margin=15)
         pdf.add_page()
         pdf.set_font("Arial", size=10)
         
         # Títulos de las columnas
-        columnas = ["ID", "NOMBRES", "APELLIDO PATERNO", "APELLIDO MATERNO", "DNI", "GENERO", "ESTADO CIVIL", "FECHA Y HORA"]
-        pdf.set_fill_color(200, 220, 255)
+        columnas = ["ID","NOMBRES", "APELLIDO PATERNO", "APELLIDO MATERNO", "DNI", "GENERO", "ESTADO CIVIL", "FECHA Y HORA"]
+        pdf.set_fill_color(180, 200, 235)
+        cell_width = pdf.w / len(columnas)
+        cell_width =35
+        cell_height = 7
+        
         for col in columnas:
-            pdf.cell(30, 10, col, 1, 0, 'C', 1)
+            pdf.cell(cell_width, cell_height, col, border=1, align='C', fill=True)
+        
+        pdf.ln()
         
         # Agregar registros al PDF
         pdf.set_fill_color(255, 255, 255)
-        pdf.ln()
         for row in registros:
             for dato in row:
-                pdf.cell(30, 10, str(dato), 1, 0, 'C')
+                pdf.cell(cell_width, cell_height, str(dato), border=1, align='C')
             pdf.ln()
         
         # Guardar el PDF
-        pdf.output("registros_asistencia_vertical.pdf")
-        messagebox.showinfo("Exportar a PDF", "Datos exportados a registros_asistencia_vertical.pdf")
+        pdf_filename = "registros_asistencia_horizontal.pdf"
+        pdf.output(pdf_filename)
+        messagebox.showinfo("Exportar a PDF", f"Datos exportados a {pdf_filename}")
         
     except sqlite3.Error as error:
         messagebox.showerror("Error", f"Error al exportar a PDF: {error}")
-        
+
+exportar_a_pdf()
+
 def exportar_a_excel():
     try:
         # Conexión a la base de datos
