@@ -813,24 +813,33 @@ def ventana_administrador():
             messagebox.showerror("ERROR", f"Error al borrar el registro: {error}")
 
     def buscar_por_dni():
-        def ejecutar_busqueda():
-            dni = miDNI.get()
-            try:
-                miConexion = sqlite3.connect("asistencia.db")
-                miCursor = miConexion.cursor()
-                miCursor.execute("SELECT * FROM empleados WHERE DNI=?", (dni,))
-                registros = miCursor.fetchall()
-                for row in tree.get_children():
-                    tree.delete(row)
-                if registros:
-                    for registro in registros:
-                        tree.insert("", "end", text=registro[0], values=(registro[1], registro[2], registro[3], registro[4], registro[5], registro[6], registro[7]))
-                else:
-                    messagebox.showinfo("Sin resultados", f"No se encontraron registros con el DNI {dni}.")
-            except sqlite3.Error as error:
-                messagebox.showerror("Error", f"Error al buscar por DNI: {error}")
+        dni = miDNI.get()
+        try:
+            # Conexión a la base de datos
+            miConexion = sqlite3.connect("asistencia.db")
+            miCursor = miConexion.cursor()
+            
+            # Consulta para buscar registros por DNI
+            miCursor.execute("SELECT * FROM empleados WHERE DNI=?", (dni,))
+            registros = miCursor.fetchall()
+            
+            # Limpiar resultados anteriores en el Treeview
+            for row in tree.get_children():
+                tree.delete(row)
+            
+            # Mostrar resultados en el Treeview
+            if registros:
+                for registro in registros:
+                    tree.insert("", "end", text=registro[0], values=(registro[1], registro[2], registro[3], registro[4], registro[5], registro[6], registro[7]))
+            else:
+                messagebox.showinfo("Sin resultados", f"No se encontraron registros con el DNI {dni}.")
         
-        ejecutar_busqueda()
+        except sqlite3.Error as error:
+            messagebox.showerror("Error", f"Error al buscar por DNI: {error}")
+        finally:
+            # Cerrar la conexión a la base de datos
+            if miConexion:
+                miConexion.close()
         
     tree = ttk.Treeview(height=10, columns=('#0', '#1', '#2', '#3', '#4', '#5', '#6', '#7'))
     tree.place(x=0, y=300)
