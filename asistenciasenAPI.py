@@ -96,11 +96,6 @@ def DNI():
         ven_da.geometry("500x600")
         ven_da.configure(background='lightblue')
 
-        # Configurar estilo personalizado con fuente "MV Boli"
-        style = ttk.Style()
-        style.configure('TLabel', font=('MV Boli', 12))
-        style.configure('TButton', font=('MV Boli', 12))
-
         ttk.Label(ven_da, text=f'DNI: {data["dni"]}').pack(padx=10, pady=5)
         ttk.Label(ven_da, text=f'Nombres: {data["nombres"]}').pack(padx=10, pady=5)
         ttk.Label(ven_da, text=f'Apellido Paterno: {data["apellidoPaterno"]}').pack(padx=10, pady=5)
@@ -367,7 +362,6 @@ def escaneo_archivos():
                 # Mostrar el código de barras encontrado
                 codigo = resultado[0].data.decode('utf-8')
                 messagebox.showinfo("Escaneo de DNI", f"Código de barras encontrado:\n{codigo}")
-                ventana_administrador()
                 # Obtener información del DNI desde la API
                 url = f'https://dniruc.apisperu.com/api/v1/dni/{codigo}?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6IkVjYXlvbWFAZ21haWwuY29tIn0.4w94GBUGg1bJmN50EiHBd1qHYEpnmjmS93lRP_7Nsr8'
                 response = requests.get(url)
@@ -379,6 +373,7 @@ def escaneo_archivos():
                     if not data.get('success', False):
                         messagebox.showinfo("DNI no registrado", "El DNI no se encuentra registrado en la base de datos.")
                         ventana_administrador()
+                        
                     else:
                         mostrar_datos(data)
                 else:
@@ -400,6 +395,7 @@ def escaneo_archivos():
             # Crear la ventana de datos del DNI
             ventana_datos = tk.Toplevel()
             ventana_datos.title('Datos del DNI')
+            ventana_datos.geometry("500x600")
             
             # Mostrar los datos del DNI en etiquetas
             tk.Label(ventana_datos, text=f'DNI: {data["dni"]}').pack(padx=10, pady=5)
@@ -465,29 +461,89 @@ def escaneo_archivos():
     btn_escanear = tk.Button(root, text="Escanear DNI", command=escanear_dni)
     btn_escanear.pack(pady=20)
 
-    
-
 def reportes():
     def obtener_cantidad_registros_diarios(fecha):
         fecha_str = fecha.strftime('%Y-%m-%d')
         miConexion = sqlite3.connect("asistencia.db")
         miCursor = miConexion.cursor()
-        miCursor.execute("SELECT COUNT(*) FROM empleados WHERE FECHA_HORA LIKE ?", (f"{fecha_str}%",))
-        cantidad = miCursor.fetchone()[0]
-        return cantidad
+        miCursor.execute("SELECT * FROM empleados WHERE FECHA_HORA LIKE ?", (f"{fecha_str}%",))
+        registros = miCursor.fetchall()
+        miConexion.close()
+        return registros
 
-    # Función para obtener la cantidad de registros entre dos fechas
+    # Función para obtener la cantidad de registros entre dos fechas en la base de datos
     def obtener_cantidad_registros_entre_fechas(fecha_inicio, fecha_fin):
         fecha_inicio_str = fecha_inicio.strftime('%Y-%m-%d %H:%M:%S')
         fecha_fin_str = fecha_fin.strftime('%Y-%m-%d %H:%M:%S')
         miConexion = sqlite3.connect("asistencia.db")
         miCursor = miConexion.cursor()
-        miCursor.execute("SELECT COUNT(*) FROM empleados WHERE FECHA_HORA BETWEEN ? AND ?", (fecha_inicio_str, fecha_fin_str))
-        cantidad = miCursor.fetchone()[0]
-        return cantidad
+        miCursor.execute("SELECT * FROM empleados WHERE FECHA_HORA BETWEEN ? AND ?", (fecha_inicio_str, fecha_fin_str))
+        registros = miCursor.fetchall()
+        miConexion.close()
+        return registros
 
-    # Función para mostrar registros diarios en la GUI
-    def mostrar_registros_diarios():
+    # Función para mostrar registros en el Treeview
+    def mostrar_registros(tree, registros):
+        # Limpiar datos anteriores en el Treeview
+        for row in tree.get_children():
+            tree.delete(row)
+        
+        # Insertar nuevos datos en el Treeview
+        for registro in registros:
+            tree.insert("", tk.END, values=registro)
+
+    # Función para mostrar resultados en la GUI usando Treeview
+    def mostrar_resultados(titulo, registros):
+        root = tk.Tk()
+        root.title(titulo)
+        root.geometry("800x400")
+        
+        label_titulo = tk.Label(root, text=titulo, font=("Arial", 14))
+        label_titulo.pack(pady=10)
+
+        # Crear el Treeview con columnas
+        columns = ["ID", "NOMBRES", "APELLIDO_PATERNO", "APELLIDO_MATERNO", "DNI", "GENERO", "ESTADO_CIVIL", "FECHA_HORA"]
+        tree = ttk.Treeview(root, columns=columns, show="headings", height=15)
+        
+        # Configurar encabezados de las columnas
+        for col in columns:
+            tree.heading(col, text=col)
+            tree.column(col, width=100)
+
+        # Mostrar registros en el Treeview
+        mostrar_registros(tree, registros)
+        
+        tree.pack(padx=20, pady=10, fill=tk.BOTH, expand=True)
+
+        root.mainloop()
+
+    # Función principal para mostrar las opciones al usuario
+    def mostrar_interfaz():
+        root = tk.Tk()
+        root.title("Reporte de Registros")
+        root.geometry("300x250")
+        root.configure(background='lightblue')
+
+        label_titulo = tk.Label(root, text="Seleccione el tipo de reporte:", font=("Arial", 14), bg='lightblue')
+        label_titulo.pack(pady=10)
+
+        # Botones para seleccionar el tipo de reporte
+        btn_diarios = tk.Button(root, text="Registros Diarios", command=mostrar_registros_diarios_gui)
+        btn_diarios.pack(pady=5)
+
+        btn_semanales = tk.Button(root, text="Registros Semanales", command=mostrar_registros_semanales_gui)
+        btn_semanales.pack(pady=5)
+
+        btn_mensuales = tk.Button(root, text="Registros Mensuales", command=mostrar_registros_mensuales_gui)
+        btn_mensuales.pack(pady=5)
+
+        btn_salir = tk.Button(root, text="Salir", command=root.destroy)
+        btn_salir.pack(pady=10)
+
+        root.mainloop()
+
+    # Funciones para mostrar registros diarios, semanales y mensuales usando Treeview
+    def mostrar_registros_diarios_gui():
         try:
             # Obtener fecha actual
             hoy = datetime.now()
@@ -495,14 +551,13 @@ def reportes():
             # Obtener registros diarios
             registros_diarios = obtener_cantidad_registros_diarios(hoy)
 
-            # Mostrar resultados en la interfaz gráfica
-            mostrar_resultados("Registros diarios", registros_diarios)
+            # Mostrar resultados en la interfaz gráfica usando Treeview
+            mostrar_resultados("Registros Diarios", registros_diarios)
 
         except Exception as e:
             messagebox.showerror("Error", f"Error al obtener registros diarios: {str(e)}")
 
-    # Función para mostrar registros semanales en la GUI
-    def mostrar_registros_semanales():
+    def mostrar_registros_semanales_gui():
         try:
             # Obtener fecha actual
             hoy = datetime.now()
@@ -511,14 +566,13 @@ def reportes():
             semana_pasada = hoy - timedelta(days=7)
             registros_semanales = obtener_cantidad_registros_entre_fechas(semana_pasada, hoy)
 
-            # Mostrar resultados en la interfaz gráfica
-            mostrar_resultados("Registros semanales", registros_semanales)
+            # Mostrar resultados en la interfaz gráfica usando Treeview
+            mostrar_resultados("Registros Semanales", registros_semanales)
 
         except Exception as e:
             messagebox.showerror("Error", f"Error al obtener registros semanales: {str(e)}")
 
-    # Función para mostrar registros mensuales en la GUI
-    def mostrar_registros_mensuales():
+    def mostrar_registros_mensuales_gui():
         try:
             # Obtener fecha actual
             hoy = datetime.now()
@@ -529,39 +583,14 @@ def reportes():
             # Obtener registros mensuales
             registros_mensuales = obtener_cantidad_registros_entre_fechas(primer_dia_mes_actual, hoy)
 
-            # Mostrar resultados en la interfaz gráfica
-            mostrar_resultados("Registros mensuales", registros_mensuales)
+            # Mostrar resultados en la interfaz gráfica usando Treeview
+            mostrar_resultados("Registros Mensuales", registros_mensuales)
 
         except Exception as e:
             messagebox.showerror("Error", f"Error al obtener registros mensuales: {str(e)}")
 
-    # Función para mostrar resultados en la GUI
-    def mostrar_resultados(titulo, cantidad):
-        root = tk.Tk()
-        root.title(titulo)
-        root.geometry("300x150")
-
-        label_titulo = tk.Label(root, text=titulo, font=("Arial", 14))
-        label_titulo.pack(pady=10)
-
-        label_cantidad = tk.Label(root, text=f"Cantidad: {cantidad}", font=("Arial", 12))
-        label_cantidad.pack(pady=10)
-
-        root.mainloop()
-
-# Crear la ventana principal para seleccionar qué registros mostrar
-    root = tk.Tk()
-    root.title("Mostrar Registros")
-    root.geometry("300x200")
-
-    btn_diarios = tk.Button(root, text="Mostrar Registros Diarios", command=mostrar_registros_diarios)
-    btn_diarios.pack(pady=10)
-
-    btn_semanales = tk.Button(root, text="Mostrar Registros Semanales", command=mostrar_registros_semanales)
-    btn_semanales.pack(pady=10)
-
-    btn_mensuales = tk.Button(root, text="Mostrar Registros Mensuales", command=mostrar_registros_mensuales)
-    btn_mensuales.pack(pady=10)
+    # Llamar a la función principal para mostrar la interfaz de usuario
+    mostrar_interfaz()
     
     
 def cargar_a_la_data():
