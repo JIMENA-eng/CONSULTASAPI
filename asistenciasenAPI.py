@@ -503,7 +503,7 @@ def cargar_a_la_data():
             for index, row in df.iterrows():
                 valores = tuple(row)
                 valores += (fecha_hora_actual,)  # Agregar la fecha y hora actual
-                miCursor.execute("INSERT INTO empleados (ID,NOMBRES, APELLIDO_PATERNO, APELLIDO_MATERNO, DNI, GENERO, ESTADO_CIVIL, FECHA_HORA) VALUES (?, ?, ?, ?, ?, ?, ?,?)", valores)
+                miCursor.execute("INSERT INTO empleados (NOMBRES, APELLIDO_PATERNO, APELLIDO_MATERNO, DNI, GENERO, ESTADO_CIVIL, FECHA_HORA) VALUES (?, ?, ?, ?, ?, ?, ?)", valores)
                 registros_insertados += 1
 
             # Guardar cambios en la base de datos
@@ -698,11 +698,11 @@ def ventana_administrador():
     tree.heading('#7', text="FECHA Y HORA", anchor=tk.CENTER)
     
     tree_frame = tk.Frame(root)
-    tree_frame.pack(pady=250)
+    tree_frame.pack(pady=350)
     
-    tree_scroll_x = ttk.Scrollbar(tree_frame, orient=tk.HORIZONTAL)
+    tree_scroll_x = ttk.Scrollbar(tree_frame, orient=tk.HORIZONTAL, width=20)
     tree_scroll_x.pack(side=tk.BOTTOM, fill=tk.X)
-    tree_scroll_x.config(command=tree.xview)
+    tree_scroll_x.config(command=tree.heading)
 
     def seleccionarUsandoClick(event):
         item = tree.selection()[0]
