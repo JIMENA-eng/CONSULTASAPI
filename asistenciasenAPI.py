@@ -710,6 +710,15 @@ def ventana_administrador():
                     ESTADO_CIVIL TEXT,
                     FECHA_HORA TEXT
                 )''')
+            miCursor.execute('''CREATE TABLE IF NOT EXISTS cursos (
+                
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id_empleado INTEGER,
+                dia_semana TEXT,
+                curso TEXT,
+                FOREIGN KEY (id_empleado) REFERENCES empleados (id)
+            )
+        ''')
             messagebox.showinfo("CONEXION", "Base de datos creada")
         except sqlite3.Error as error:
             messagebox.showerror("ERROR", f"Error al conectar a la base de datos: {error}")
@@ -899,6 +908,10 @@ def ventana_administrador():
     subirmenu=Menu(menubar, tearoff=0)
     subirmenu.add_command(label="subir archivo de excel", command=cargar_a_la_data)
     menubar.add_cascade(label="subir archivos", menu=subirmenu)
+    
+    matrixmenu=Menu(menubar, tearoff=0)
+    matrixmenu.add_command(label="registar alumnos", command=MATRIX)
+    menubar.add_cascade(label="registro alumnos", menu=matrixmenu)
 
 
     ayudamenu=Menu(menubar, tearoff=0)
@@ -956,6 +969,182 @@ def ventana_administrador():
    
     root.config(menu=menubar)
     conexionBBDD()
+    
+def MATRIX():
+    def registrar_asistencia():
+        try:
+            nombres = miNombres.get()
+            apellido_paterno = miApellidoPaterno.get()
+            apellido_materno = miApellidoMaterno.get()
+            dni = miDNI.get()
+            genero = miGenero.get()
+            estado_civil = miEstadoCivil.get()
+            fecha_hora = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            miConexion = sqlite3.connect("asistencia.db")
+            miCursor = miConexion.cursor()
+            datos_empleado = (nombres, apellido_paterno, apellido_materno, dni, genero, estado_civil, fecha_hora)
+            miCursor.execute("INSERT INTO empleados VALUES (NULL,?,?,?,?,?,?,?)", datos_empleado)
+            id_empleado = miCursor.lastrowid
+
+            for dia, curso in cursos_seleccionados.items():
+                if curso.get():
+                    datos_curso = (id_empleado, dia, curso.get())
+                    miCursor.execute("INSERT INTO cursos VALUES (NULL,?,?,?)", datos_curso)
+
+            miConexion.commit()
+            limpiar_campos()
+            messagebox.showinfo("Registro de Asistencia", "Registro exitoso")
+        except sqlite3.Error as error:
+            messagebox.showerror("Error", f"Error al registrar la asistencia: {error}")
+
+    # Función para mostrar la lista de registros de asistencia
+    def mostrar_registros():
+        try:
+            miConexion = sqlite3.connect("asistencia.db")
+            miCursor = miConexion.cursor()
+            miCursor.execute("SELECT e.id, e.NOMBRES, e.APELLIDO_PATERNO, e.APELLIDO_MATERNO, e.DNI, e.GENERO, e.ESTADO_CIVIL, e.FECHA_HORA, c.dia_semana, c.curso FROM empleados e LEFT JOIN cursos c ON e.id = c.id_empleado")
+            registros = miCursor.fetchall()
+
+            # Limpiar datos anteriores en el Treeview
+            for row in tree.get_children():
+                tree.delete(row)
+
+            # Mostrar registros en el Treeview
+            if registros:
+                for registro in registros:
+                    id_empleado = registro[0]
+                    if not tree.exists(id_empleado):
+                        tree.insert("", "end", id_empleado, text=id_empleado, values=(registro[1], registro[2], registro[3], registro[4], registro[5], registro[6], registro[7]))
+
+                    if registro[8] and registro[9]:
+                        tree.insert(id_empleado, "end", text=registro[8], values=(registro[9],))
+            else:
+                messagebox.showinfo("Sin registros", "No hay registros de asistencia")
+        except sqlite3.Error as error:
+            messagebox.showerror("Error", f"Error al mostrar los registros: {error}")
+
+    # Función para exportar los registros de asistencia a un archivo Excel
+    def exportar_a_excel():
+        try:
+            miConexion = sqlite3.connect("asistencia.db")
+            miCursor = miConexion.cursor()
+            miCursor.execute("SELECT e.id, e.NOMBRES, e.APELLIDO_PATERNO, e.APELLIDO_MATERNO, e.DNI, e.GENERO, e.ESTADO_CIVIL, e.FECHA_HORA, c.dia_semana, c.curso FROM empleados e LEFT JOIN cursos c ON e.id = c.id_empleado")
+            registros = miCursor.fetchall()
+
+            # Configurar el archivo Excel
+            workbook = xlsxwriter.Workbook('registros_asistencia.xlsx')
+            worksheet = workbook.add_worksheet()
+
+            # Encabezados de las columnas
+            columnas = ["ID Empleado", "Nombres", "Apellido Paterno", "Apellido Materno", "DNI", "Género", "Estado Civil", "Fecha y Hora", "Día de la Semana", "Curso"]
+            for col_num, col_title in enumerate(columnas):
+                worksheet.write(0, col_num, col_title)
+
+            # Escribir registros en el archivo Excel
+            for row_num, row_data in enumerate(registros):
+                for col_num, cell_data in enumerate(row_data):
+                    worksheet.write(row_num + 1, col_num, cell_data)
+
+            # Cerrar el archivo Excel
+            workbook.close()
+            messagebox.showinfo("Exportar a Excel", "Datos exportados a registros_asistencia.xlsx")
+        except sqlite3.Error as error:
+            messagebox.showerror("Error", f"Error al exportar a Excel: {error}")
+
+    # Función para limpiar los campos de entrada
+    def limpiar_campos():
+        miNombres.set("")
+        miApellidoPaterno.set("")
+        miApellidoMaterno.set("")
+        miDNI.set("")
+        miGenero.set("")
+        miEstadoCivil.set("")
+        for var in cursos_seleccionados.values():
+            var.set("")
+
+    # Configuración de la ventana principal
+    root = tk.Tk()
+    root.title("Control de Asistencia y Cursos")
+
+    # Crear y configurar Treeview para mostrar los registros
+    tree = ttk.Treeview(root, columns=('Nombres', 'Apellido Paterno', 'Apellido Materno', 'DNI', 'Género', 'Estado Civil', 'Fecha y Hora'))
+    tree.heading('#0', text="ID Empleado")
+    tree.heading('Nombres', text="Nombres")
+    tree.heading('Apellido Paterno', text="Apellido Paterno")
+    tree.heading('Apellido Materno', text="Apellido Materno")
+    tree.heading('DNI', text="DNI")
+    tree.heading('Género', text="Género")
+    tree.heading('Estado Civil', text="Estado Civil")
+    tree.heading('Fecha y Hora', text="Fecha y Hora")
+    tree.pack(pady=20)
+
+    # Etiquetas y campos de entrada para los datos del empleado
+    lbl_nombres = tk.Label(root, text="Nombres:")
+    lbl_nombres.pack()
+    miNombres = tk.StringVar()
+    entry_nombres = tk.Entry(root, textvariable=miNombres)
+    entry_nombres.pack()
+
+    lbl_apellido_paterno = tk.Label(root, text="Apellido Paterno:")
+    lbl_apellido_paterno.pack()
+    miApellidoPaterno = tk.StringVar()
+    entry_apellido_paterno = tk.Entry(root, textvariable=miApellidoPaterno)
+    entry_apellido_paterno.pack()
+
+    lbl_apellido_materno = tk.Label(root, text="Apellido Materno:")
+    lbl_apellido_materno.pack()
+    miApellidoMaterno = tk.StringVar()
+    entry_apellido_materno = tk.Entry(root, textvariable=miApellidoMaterno)
+    entry_apellido_materno.pack()
+
+    lbl_dni = tk.Label(root, text="DNI:")
+    lbl_dni.pack()
+    miDNI = tk.StringVar()
+    entry_dni = tk.Entry(root, textvariable=miDNI)
+    entry_dni.pack()
+
+    lbl_genero = tk.Label(root, text="Género:")
+    lbl_genero.pack()
+    miGenero = tk.StringVar()
+    entry_genero = tk.Entry(root, textvariable=miGenero)
+    entry_genero.pack()
+
+    lbl_estado_civil = tk.Label(root, text="Estado Civil:")
+    lbl_estado_civil.pack()
+    miEstadoCivil = tk.StringVar()
+    entry_estado_civil = tk.Entry(root, textvariable=miEstadoCivil)
+    entry_estado_civil.pack()
+
+    # Checkbuttons para seleccionar los cursos por día de la semana
+    lbl_cursos = tk.Label(root, text="Cursos por día de la semana:")
+    lbl_cursos.pack()
+
+    dias_semana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+    cursos_seleccionados = {}
+    for dia in dias_semana:
+        cursos_seleccionados[dia] = tk.StringVar()
+        chk_curso = tk.Checkbutton(root, text=dia, variable=cursos_seleccionados[dia], onvalue='Curso asignado', offvalue='')
+        chk_curso.pack()
+
+    # Botones para acciones
+    frame_botones = tk.Frame(root)
+    frame_botones.pack()
+
+    btn_registrar = tk.Button(frame_botones, text="Registrar Asistencia", command=registrar_asistencia)
+    btn_registrar.grid(row=0, column=0, padx=5, pady=10)
+
+    btn_mostrar = tk.Button(frame_botones, text="Mostrar Registros", command=mostrar_registros)
+    btn_mostrar.grid(row=0, column=1, padx=5, pady=10)
+
+    btn_exportar = tk.Button(frame_botones, text="Exportar a Excel", command=exportar_a_excel)
+    btn_exportar.grid(row=0, column=2, padx=5, pady=10)
+
+    btn_limpiar = tk.Button(frame_botones, text="Limpiar Campos", command=limpiar_campos)
+    btn_limpiar.grid(row=0, column=3, padx=5, pady=10)
+
+    # Crear la base de datos al iniciar la aplicación (si no existe)
+    
 
 
 if __name__ == "__main__":
