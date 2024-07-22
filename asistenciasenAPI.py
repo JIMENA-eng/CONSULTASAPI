@@ -622,8 +622,18 @@ def cargar_a_la_data():
             # Iterar sobre las filas del DataFrame y cargar en la base de datos
             registros_insertados = 0
             for index, row in df.iterrows():
-                valores = tuple(row)
-                valores += (fecha_hora_actual,)  # Agregar la fecha y hora actual
+                # Extraer los valores de cada fila del DataFrame
+                nombres = row['NOMBRES']
+                apellido_paterno = row['APELLIDO_PATERNO']
+                apellido_materno = row['APELLIDO_MATERNO']
+                dni = row['DNI']
+                genero = row['GENERO']
+                estado_civil = row['ESTADO_CIVIL']
+
+                # Crear la tupla de valores para la consulta SQL
+                valores = (nombres, apellido_paterno, apellido_materno, dni, genero, estado_civil, fecha_hora_actual)
+                
+                # Ejecutar la consulta SQL para insertar en la base de datos
                 miCursor.execute("INSERT INTO empleados (NOMBRES, APELLIDO_PATERNO, APELLIDO_MATERNO, DNI, GENERO, ESTADO_CIVIL, FECHA_HORA) VALUES (?, ?, ?, ?, ?, ?, ?)", valores)
                 registros_insertados += 1
 
