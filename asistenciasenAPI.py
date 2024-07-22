@@ -346,11 +346,15 @@ def  escaneo_camara ():
     escanear_dni_camara()
 
 def escaneo_archivos():
+    
     def escanear_dni():
         try:
             # Abrir un cuadro de diálogo para seleccionar la imagen del DNI
-            ruta_imagen = filedialog.askopenfilename(title="Seleccionar imagen del DNI",
-                                                    filetypes=(("Archivos de imagen", "*.jpg;*.jpeg;*.png;*.bmp"), ("Todos los archivos", "*.*")))
+            ruta_imagen = filedialog.askopenfilename(
+                title="Seleccionar imagen del DNI",
+                filetypes=(("Archivos de imagen", "*.jpg;*.jpeg;*.png;*.bmp"), ("Todos los archivos", "*.*"))
+            )
+            
             if not ruta_imagen:
                 return  # Si no se selecciona ninguna imagen, salir
             
@@ -364,11 +368,49 @@ def escaneo_archivos():
                 # Mostrar el código de barras encontrado
                 codigo = resultado[0].data.decode('utf-8')
                 messagebox.showinfo("Escaneo de DNI", f"Código de barras encontrado:\n{codigo}")
+                
+                # Extraer información del código de barras (simulado)
+                # En un caso real, aquí se realizaría una consulta a una API o se procesaría la información obtenida
+                
+                # Ejemplo de datos simulados
+                nombres = "Juan"
+                apellido_paterno = "Pérez"
+                apellido_materno = "Gómez"
+                dni = codigo
+                genero = "Masculino"
+                estado_civil = "Soltero"
+                fecha_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                
+                # Insertar datos en la base de datos
+                guardar_en_db(nombres, apellido_paterno, apellido_materno, dni, genero, estado_civil, fecha_hora)
+                
             else:
                 messagebox.showinfo("Escaneo de DNI", "No se encontró ningún código de barras válido en la imagen.")
         
         except Exception as e:
             messagebox.showerror("Error", f"Error al escanear el código de barras: {str(e)}")
+
+    # Función para guardar datos en la base de datos
+    def guardar_en_db(nombres, apellido_paterno, apellido_materno, dni, genero, estado_civil, fecha_hora):
+        try:
+            # Conectar a la base de datos
+            conn = sqlite3.connect('asistencia.db')
+            cursor = conn.cursor()
+
+            # Insertar datos en la tabla 'empleados' junto con la fecha y hora
+            cursor.execute('''
+                INSERT INTO empleados (NOMBRES, APELLIDO_PATERNO, APELLIDO_MATERNO, DNI, GENERO, ESTADO_CIVIL, FECHA_HORA)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (nombres, apellido_paterno, apellido_materno, dni, genero, estado_civil, fecha_hora))
+
+            # Guardar cambios y cerrar la conexión
+            conn.commit()
+            conn.close()
+
+            messagebox.showinfo("Registro exitoso", "Los datos se han guardado correctamente en la base de datos.")
+
+        except sqlite3.Error as e:
+            messagebox.showerror("Error al guardar", f"Error de SQLite: {str(e)}")
 
     # Configuración de la ventana principal
     root = tk.Tk()
@@ -378,7 +420,7 @@ def escaneo_archivos():
 
     # Botón para escanear el código de barras del DNI
     btn_escanear = tk.Button(root, text="Escanear DNI", command=escanear_dni)
-    btn_escanear.pack(pady=20)
+    btn_escanear.pack(pady=20)    
 
 def reportes():
     def obtener_cantidad_registros_diarios(fecha):
