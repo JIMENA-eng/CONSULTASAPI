@@ -16,23 +16,23 @@ from pyzbar.pyzbar import decode
 import tempfile
 import pandas as pd
 
+
+
 def inicio_dmin():
     top.destroy()
     root=Tk()
     root.title("ADMINISTRADOR INICIO DE SESION")
-    root.geometry("300x250")
+    root.geometry("400x350")
     root.configure(background='lightblue')
     
-    fuente_actual_2 = font.Font(family="MV Boli", size=12)
-    
-    lb_usuario=tk.Label(root, text='USUARIO:', font=fuente_actual_2)
+    lb_usuario=tk.Label(root, text='USUARIO:',bg='lightblue')
     lb_usuario.grid(row=0, padx=10,pady=5, sticky=tk.W)
-    en_usuario=tk.Entry(root, font=fuente_actual_2)
+    en_usuario=tk.Entry(root)
     en_usuario.grid(row=0, column=1, padx=10, pady=5)
     
-    lb_contraseña=tk.Label(root, text='CONTRASEÑA:', font=fuente_actual_2)
+    lb_contraseña=tk.Label(root, text='CONTRASEÑA:',bg='lightblue')
     lb_contraseña.grid(row=1, column=0, padx=10, pady=5)
-    en_contraseña=tk.Entry(root, show='*', font=fuente_actual_2)
+    en_contraseña=tk.Entry(root, show='*')
     en_contraseña.grid(row=1, column=1,padx=10, pady=5)
     
     def ver_admin():
@@ -44,30 +44,25 @@ def inicio_dmin():
             
             ventana_administrador()
         else:
-            messagebox.showerror('ERROR', 'USUARIO Y CONTRASEÑA INCORRECTA', font=fuente_actual_2)
+            messagebox.showerror('ERROR', 'USUARIO Y CONTRASEÑA INCORRECTA')
     
-    bt_inicio=tk.Button(root, text='iniciar sesion', command=ver_admin, font=fuente_actual_2)
+    bt_inicio=tk.Button(root, text='INICIAR SESION', command=ver_admin)
     bt_inicio.grid(row=2, columnspan=2, padx=10, pady=10)
     
 def inicio_usuario():
     top.destroy()
-    messagebox.showinfo('inicio de sesion', 'sesion inicia como usuario', font=fuente_actual_1)
+    messagebox.showinfo('inicio de sesion', 'sesion inicia como usuario')
 
 top=Tk()
-top.title('seleciona tipo de usuario')
+top.title('seleciona tipo de usuario' )
 top.geometry("500x300")
 top.configure(background='lightblue')
 
-
-fuente_actual = font.Font(family="MV Boli", size=20)
-fuente_actual_1 = font.Font(family="MV Boli", size=12)
-
-
-lb_user = tk.Label(top, text='SELECCIONE SU INICIO DE SESION:', bg='lightblue', font=fuente_actual)
+lb_user = tk.Label(top, text='SELECCIONE SU INICIO DE SESION:', bg='lightblue')
 lb_user.pack()
-bt_admin=tk.Button(top, text='INICIAR SESION COMO ADMINISTRADOR', command=inicio_dmin, bg='lightblue', font=fuente_actual_1)
+bt_admin=tk.Button(top, text='INICIAR SESION COMO ADMINISTRADOR', command=inicio_dmin, bg='lightblue')
 bt_admin.pack(pady=20)
-bt_usuario=tk.Button(top, text='INICIAR SESION COMO USUARIO', command=inicio_usuario, bg='lightblue', font=fuente_actual_1)
+bt_usuario=tk.Button(top, text='INICIAR SESION COMO USUARIO', command=inicio_usuario, bg='lightblue')
 bt_usuario.pack(pady=20)
 
 def DNI():
@@ -97,7 +92,8 @@ def DNI():
         wen.destroy()
         ven_da=tk.Toplevel()
         ven_da.title('DATOS DEL DNI')
-        
+        ven_da.geometry("500x500")
+    
         tk.Label(ven_da, text=f'DNI: {data["dni"]}').pack(padx=10, pady=5)
         tk.Label(ven_da, text=f'Nombres: {data["nombres"]}').pack(padx=10, pady=5)
         tk.Label(ven_da, text=f'Apellido Paterno: {data["apellidoPaterno"]}').pack(padx=10, pady=5)
@@ -117,7 +113,7 @@ def DNI():
 
         # Botones de género (ejemplo básico)
         tk.Label(ven_da, text="Género:").pack(padx=10, pady=5)
-        tk.Button(ven_da, text="Femenino", command=lambda: guardar_en_db(data, "Femenino", estado_civil.get())).pack(pady=5)
+        tk.Button(ven_da, text="Femenino", command=lambda: guardar_en_db(data, "Femenino", estado_civil.get())).pack(padx=10,pady=5)
         tk.Button(ven_da, text="Masculino", command=lambda: guardar_en_db(data, "Masculino", estado_civil.get())).pack(pady=5)
         tk.Button(ven_da, text="Otros", command=lambda: guardar_en_db(data, "Otros", estado_civil.get())).pack(pady=5)
 
@@ -152,6 +148,7 @@ def DNI():
     # Crear la ventana principal
     wen = Tk()
     wen.title('Consulta de DNI')
+    wen.geometry("300x250")
 
     # Etiqueta y entrada para ingresar el número de DNI
     label_dni = tk.Label(wen, text='Ingrese el número de DNI:')
@@ -693,12 +690,6 @@ def ventana_administrador():
     tree.heading('#6', text="ESTADO CIVIL", anchor=tk.CENTER)
     tree.heading('#7', text="FECHA Y HORA", anchor=tk.CENTER)
     
-    tree_frame = tk.Frame(root)
-    tree_frame.pack(pady=350)
-    
-    tree_scroll_x = ttk.Scrollbar(tree_frame, orient=tk.HORIZONTAL, width=20)
-    tree_scroll_x.pack(side=tk.BOTTOM, fill=tk.X)
-    tree_scroll_x.config(command=tree.heading)
 
     def seleccionarUsandoClick(event):
         item = tree.selection()[0]
