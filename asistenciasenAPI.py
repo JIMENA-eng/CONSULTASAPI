@@ -1029,6 +1029,9 @@ def MATRIX():
         except sqlite3.Error as error:
             messagebox.showerror("Error de base de datos", f"No se pudo registrar la asistencia: {error}")
 
+        finally:
+            conexion.close()
+
     # Configuración de la ventana principal
     root = tk.Tk()
     root.title("Control de Asistencia de Alumnos")
