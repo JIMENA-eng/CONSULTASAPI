@@ -8,7 +8,6 @@ import datetime
 from fpdf import FPDF
 import xlsxwriter
 from datetime import datetime,timedelta
-from tkinter import font
 from tkinter import filedialog, messagebox
 import cv2
 from PIL import Image, ImageTk
@@ -214,7 +213,7 @@ def exportar_a_pdf():
     except sqlite3.Error as error:
         messagebox.showerror("Error", f"Error al exportar a PDF: {error}")
 
-exportar_a_pdf()
+
 
 def exportar_a_excel():
     try:
@@ -227,7 +226,7 @@ def exportar_a_excel():
         registros = miCursor.fetchall()
         
         # Configuración del archivo Excel
-        workbook = xlsxwriter.Workbook('registros_asistencia.xlsx')
+        workbook = xlsxwriter.Workbook('registros_generales.xlsx')
         worksheet = workbook.add_worksheet()
         
         # Encabezados de las columnas
@@ -242,7 +241,7 @@ def exportar_a_excel():
         
         # Cerrar el archivo Excel
         workbook.close()
-        messagebox.showinfo("Exportar a Excel", "Datos exportados a registros_asistencia.xlsx")
+        messagebox.showinfo("Exportar a Excel", "Datos exportados a registros_generales.xlsx")
         
     except sqlite3.Error as error:
         messagebox.showerror("Error", f"Error al exportar a Excel: {error}")
@@ -273,7 +272,7 @@ def  escaneo_camara ():
         root = tk.Tk()
         root.title("Escaneo de DNI con cámara")
         root.geometry("800x600")
-        root.configure(bg='light green')
+        root.configure(bg='lightgreen')
 
         # Etiqueta para mostrar la imagen de la cámara
         lbl_camara = tk.Label(root)
@@ -694,7 +693,7 @@ def ventana_administrador():
     root=Tk()
     root.title("CONSULTAS Y ASISTENCIAS EN EL API")
     root.geometry("800x500")
-    root.configure(background='lightgreen')
+    root.configure(background='lightblue')
 
 
     def conexionBBDD():
@@ -901,50 +900,50 @@ def ventana_administrador():
 
     e1=Entry(root, textvariable=miID)
 
-    l2=Label(root,text="NOMBRES")
-    l2.place(x=50,y=10)
+    l2=Label(root,text="NOMBRES", bg='lightblue')
+    l2.place(x=100,y=10)
     e2=Entry(root,textvariable=miNombres, width=50)
-    e2.place(x=100,y=10)
+    e2.place(x=250,y=10)
      
     b2=Button(root, text="BUSCAR", command=buscar_por_dni)
     b2.place(x=800,y=10)
     r2=Entry(root, width=10)
-    r2.place(x=850, y=10)
+    r2.place(x=900, y=10)
     
 
-    l3=Label(root,text="APELLIDO PATERNO")
-    l3.place(x=50,y=40)
-    e3=Entry(root,textvariable=miApellidoPaterno)
-    e3.place(x=100,y=40)
+    l3=Label(root,text="APELLIDO PATERNO",bg='lightblue')
+    l3.place(x=100,y=40)
+    e3=Entry(root,textvariable=miApellidoPaterno, width=50)
+    e3.place(x=250,y=40)
 
-    l4=Label(root,text="APELLIDO MATERNO")
-    l4.place(x=50,y=60)
-    e4=Entry(root, textvariable=miApellidoMaterno, width=10)
-    e4.place(x=100,y=60)
+    l4=Label(root,text="APELLIDO MATERNO",bg='lightblue')
+    l4.place(x=100,y=70)
+    e4=Entry(root, textvariable=miApellidoMaterno, width=50)
+    e4.place(x=250,y=70)
 
-    l5=Label(root, text="DNI")
-    l5.place(x=50,y=80)
-    e5=Entry(root, textvariable=miDNI,  width=10)
-    e5.place(x=100,y=80)
+    l5=Label(root, text="DNI", bg='lightblue')
+    l5.place(x=100,y=100)
+    e5=Entry(root, textvariable=miDNI,  width=50)
+    e5.place(x=250,y=100)
 
-    l6=Label(root,text="GENERO")
-    l6.place(x=50,y=100)
-    e6=Entry(root,textvariable=miGenero, width=10)
-    e6.place(x=100,y=100)
+    l6=Label(root,text="GENERO", bg='lightblue')
+    l6.place(x=100,y=130)
+    e6=Entry(root,textvariable=miGenero, width=50)
+    e6.place(x=250,y=130)
     
-    l7=Label(root, text="ESTADO CIVIL")
-    l7.place(x=50,y=120)
-    e7=Entry(root, textvariable=miEstado_civil, width=10)
-    e7.place(x=100,y=120)
+    l7=Label(root, text="ESTADO CIVIL",bg='lightblue')
+    l7.place(x=100,y=160)
+    e7=Entry(root, textvariable=miEstado_civil, width=50)
+    e7.place(x=250,y=160)
 
     b1=Button(root, text="crear registro", command=crear)
-    b1.place(x=90,y=250)
+    b1.place(x=100,y=250)
     b2=Button(root, text="modificar registro", command=actualizar)
-    b2.place(x=150,y=250)
+    b2.place(x=400,y=250)
     b3=Button(root, text="mostrar lista", command=mostrar)
-    b3.place(x=350, y=250)
-    b4=Button(root, text="eliminar registro", bg="blue", command=borrar)
-    b4.place(x=500,y=250)
+    b3.place(x=700, y=250)
+    b4=Button(root, text="eliminar registro", bg="red", command=borrar)
+    b4.place(x=1000,y=250)
    
     root.config(menu=menubar)
     conexionBBDD()
