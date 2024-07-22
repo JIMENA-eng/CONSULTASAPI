@@ -23,15 +23,16 @@ def inicio_dmin():
     root.geometry("300x250")
     root.configure(background='lightblue')
     
+    fuente_actual_2 = font.Font(family="MV Boli", size=12)
     
-    lb_usuario=tk.Label(root, text='USUARIO:')
+    lb_usuario=tk.Label(root, text='USUARIO:', font=fuente_actual_2)
     lb_usuario.grid(row=0, padx=10,pady=5, sticky=tk.W)
-    en_usuario=tk.Entry(root)
+    en_usuario=tk.Entry(root, font=fuente_actual_2)
     en_usuario.grid(row=0, column=1, padx=10, pady=5)
     
-    lb_contraseña=tk.Label(root, text='CONTRASEÑA:')
+    lb_contraseña=tk.Label(root, text='CONTRASEÑA:', font=fuente_actual_2)
     lb_contraseña.grid(row=1, column=0, padx=10, pady=5)
-    en_contraseña=tk.Entry(root, show='*')
+    en_contraseña=tk.Entry(root, show='*', font=fuente_actual_2)
     en_contraseña.grid(row=1, column=1,padx=10, pady=5)
     
     def ver_admin():
@@ -43,35 +44,30 @@ def inicio_dmin():
             
             ventana_administrador()
         else:
-            messagebox.showerror('ERROR', 'USUARIO Y CONTRASEÑA INCORRECTA')
+            messagebox.showerror('ERROR', 'USUARIO Y CONTRASEÑA INCORRECTA', font=fuente_actual_2)
     
-    bt_inicio=tk.Button(root, text='iniciar sesion', command=ver_admin)
+    bt_inicio=tk.Button(root, text='iniciar sesion', command=ver_admin, font=fuente_actual_2)
     bt_inicio.grid(row=2, columnspan=2, padx=10, pady=10)
     
 def inicio_usuario():
     top.destroy()
-    messagebox.showinfo('inicio de sesion', 'sesion inicia como usuario')
+    messagebox.showinfo('inicio de sesion', 'sesion inicia como usuario', font=fuente_actual_1)
 
 top=Tk()
 top.title('seleciona tipo de usuario')
 top.geometry("500x300")
 top.configure(background='lightblue')
 
-fuente_actual = font.Font(family="Times New Roman", size=20)
 
-# Función para cambiar la fuente y tamaño del texto
-def cambiar_fuente_tamano():
-    global fuente_actual
-    # Cambiar la familia de fuente y el tamaño
-    fuente_actual.configure(family="Arial", size=16)  # Cambiar a Arial y tamaño 16
-    # Aplicar la nueva fuente al texto en la etiqueta
-    lb_user.config(font=fuente_actual)
+fuente_actual = font.Font(family="MV Boli", size=20)
+fuente_actual_1 = font.Font(family="MV Boli", size=12)
+
 
 lb_user = tk.Label(top, text='SELECCIONE SU INICIO DE SESION:', bg='lightblue', font=fuente_actual)
 lb_user.pack()
-bt_admin=tk.Button(top, text='INICIAR SESION COMO ADMINISTRADOR', command=inicio_dmin, bg='lightblue')
+bt_admin=tk.Button(top, text='INICIAR SESION COMO ADMINISTRADOR', command=inicio_dmin, bg='lightblue', font=fuente_actual_1)
 bt_admin.pack(pady=20)
-bt_usuario=tk.Button(top, text='INICIAR SESION COMO USUARIO', command=inicio_usuario, bg='lightblue')
+bt_usuario=tk.Button(top, text='INICIAR SESION COMO USUARIO', command=inicio_usuario, bg='lightblue', font=fuente_actual_1)
 bt_usuario.pack(pady=20)
 
 def DNI():
