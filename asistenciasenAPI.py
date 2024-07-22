@@ -7,7 +7,7 @@ import requests
 import datetime
 from fpdf import FPDF
 import xlsxwriter
-from datetime import datetime
+from datetime import datetime,timedelta
 from tkinter import font
 from tkinter import filedialog, messagebox
 import cv2
@@ -375,46 +375,102 @@ def escaneo_archivos():
     btn_escanear = tk.Button(root, text="Escanear DNI", command=escanear_dni)
     btn_escanear.pack(pady=20)
 
+def reportes():
+    def obtener_cantidad_registros_diarios(fecha):
+        fecha_str = fecha.strftime('%Y-%m-%d')
+        miConexion = sqlite3.connect("asistencia.db")
+        miCursor = miConexion.cursor()
+        miCursor.execute("SELECT COUNT(*) FROM empleados WHERE FECHA_HORA LIKE ?", (f"{fecha_str}%",))
+        cantidad = miCursor.fetchone()[0]
+        return cantidad
 
-def diario():
+    # Función para obtener la cantidad de registros entre dos fechas
+    def obtener_cantidad_registros_entre_fechas(fecha_inicio, fecha_fin):
+        fecha_inicio_str = fecha_inicio.strftime('%Y-%m-%d %H:%M:%S')
+        fecha_fin_str = fecha_fin.strftime('%Y-%m-%d %H:%M:%S')
+        miConexion = sqlite3.connect("asistencia.db")
+        miCursor = miConexion.cursor()
+        miCursor.execute("SELECT COUNT(*) FROM empleados WHERE FECHA_HORA BETWEEN ? AND ?", (fecha_inicio_str, fecha_fin_str))
+        cantidad = miCursor.fetchone()[0]
+        return cantidad
+
+    # Función para mostrar registros diarios en la GUI
     def mostrar_registros_diarios():
         try:
-            fecha_actual = datetime.date.today()
-            miConexion = sqlite3.connect("asistencia.db")
-            miCursor = miConexion.cursor()
-            miCursor.execute("SELECT * FROM empleados WHERE DATE(FECHA_HORA_ENTRADA) = ?", (fecha_actual,))
-            registros = miCursor.fetchall()
-            ventan_reportes()
-        except sqlite3.Error as error:
-            messagebox.showerror("ERROR", f"Error al mostrar registros diarios: {error}")
+            # Obtener fecha actual
+            hoy = datetime.now()
 
-def semana():
+            # Obtener registros diarios
+            registros_diarios = obtener_cantidad_registros_diarios(hoy)
+
+            # Mostrar resultados en la interfaz gráfica
+            mostrar_resultados("Registros diarios", registros_diarios)
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al obtener registros diarios: {str(e)}")
+
+    # Función para mostrar registros semanales en la GUI
     def mostrar_registros_semanales():
         try:
-            fecha_actual = datetime.date.today()
-            fecha_inicio_semana = fecha_actual - datetime.timedelta(days=fecha_actual.weekday())
-            fecha_fin_semana = fecha_inicio_semana + datetime.timedelta(days=6)
-            miConexion = sqlite3.connect("asistencia.db")
-            miCursor = miConexion.cursor()
-            miCursor.execute("SELECT * FROM empleados WHERE DATE(FECHA_HORA_ENTRADA) BETWEEN ? AND ?", (fecha_inicio_semana, fecha_fin_semana))
-            registros = miCursor.fetchall()
-            ventan_reportes()
-        except sqlite3.Error as error:
-            messagebox.showerror("ERROR", f"Error al mostrar registros semanales: {error}")
+            # Obtener fecha actual
+            hoy = datetime.now()
 
-def mes():
+            # Obtener registros semanales (últimos 7 días)
+            semana_pasada = hoy - timedelta(days=7)
+            registros_semanales = obtener_cantidad_registros_entre_fechas(semana_pasada, hoy)
+
+            # Mostrar resultados en la interfaz gráfica
+            mostrar_resultados("Registros semanales", registros_semanales)
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al obtener registros semanales: {str(e)}")
+
+    # Función para mostrar registros mensuales en la GUI
     def mostrar_registros_mensuales():
         try:
-            fecha_actual = datetime.date.today()
-            primer_dia_mes = fecha_actual.replace(day=1)
-            ultimo_dia_mes = fecha_actual.replace(day=datetime.date.today().day)
-            miConexion = sqlite3.connect("asistencia.db")
-            miCursor = miConexion.cursor()
-            miCursor.execute("SELECT * FROM empleados WHERE DATE(FECHA_HORA_ENTRADA) BETWEEN ? AND ?", (primer_dia_mes, ultimo_dia_mes))
-            registros = miCursor.fetchall()
-            ventan_reportes()
-        except sqlite3.Error as error:
-            messagebox.showerror("ERROR", f"Error al mostrar registros mensuales: {error}")
+            # Obtener fecha actual
+            hoy = datetime.now()
+
+            # Obtener primer día del mes actual
+            primer_dia_mes_actual = hoy.replace(day=1)
+
+            # Obtener registros mensuales
+            registros_mensuales = obtener_cantidad_registros_entre_fechas(primer_dia_mes_actual, hoy)
+
+            # Mostrar resultados en la interfaz gráfica
+            mostrar_resultados("Registros mensuales", registros_mensuales)
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al obtener registros mensuales: {str(e)}")
+
+    # Función para mostrar resultados en la GUI
+    def mostrar_resultados(titulo, cantidad):
+        root = tk.Tk()
+        root.title(titulo)
+        root.geometry("300x150")
+
+        label_titulo = tk.Label(root, text=titulo, font=("Arial", 14))
+        label_titulo.pack(pady=10)
+
+        label_cantidad = tk.Label(root, text=f"Cantidad: {cantidad}", font=("Arial", 12))
+        label_cantidad.pack(pady=10)
+
+        root.mainloop()
+
+# Crear la ventana principal para seleccionar qué registros mostrar
+    root = tk.Tk()
+    root.title("Mostrar Registros")
+    root.geometry("300x200")
+
+    btn_diarios = tk.Button(root, text="Mostrar Registros Diarios", command=mostrar_registros_diarios)
+    btn_diarios.pack(pady=10)
+
+    btn_semanales = tk.Button(root, text="Mostrar Registros Semanales", command=mostrar_registros_semanales)
+    btn_semanales.pack(pady=10)
+
+    btn_mensuales = tk.Button(root, text="Mostrar Registros Mensuales", command=mostrar_registros_mensuales)
+    btn_mensuales.pack(pady=10)
+
 def ventan_reportes():
 
     # Configuración de la ventana principal
@@ -616,9 +672,7 @@ def ventana_administrador():
     menubar.add_cascade(label="consultar", menu=consultarmenu)
 
     repormenu=Menu(menubar, tearoff=0)
-    repormenu.add_command(label="reporte diario", command=diario)
-    repormenu.add_command(label="reporte semanal", command=semana)
-    repormenu.add_command(label="reporte mensual", command=mes)
+    repormenu.add_command(label="mostrar", command=reportes)
     menubar.add_cascade(label="reportes", menu=repormenu)
 
     expomenu=Menu(menubar, tearoff=0)
