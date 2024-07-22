@@ -346,7 +346,6 @@ def  escaneo_camara ():
     escanear_dni_camara()
 
 def escaneo_archivos():
-    
     def escanear_dni():
         try:
             # Abrir un cuadro de diálogo para seleccionar la imagen del DNI
@@ -368,40 +367,84 @@ def escaneo_archivos():
                 # Mostrar el código de barras encontrado
                 codigo = resultado[0].data.decode('utf-8')
                 messagebox.showinfo("Escaneo de DNI", f"Código de barras encontrado:\n{codigo}")
+                ventana_administrador()
+                # Obtener información del DNI desde la API
+                url = f'https://dniruc.apisperu.com/api/v1/dni/{codigo}?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6IkVjYXlvbWFAZ21haWwuY29tIn0.4w94GBUGg1bJmN50EiHBd1qHYEpnmjmS93lRP_7Nsr8'
+                response = requests.get(url)
+                response.raise_for_status()
                 
-                # Extraer información del código de barras (simulado)
-                # En un caso real, aquí se realizaría una consulta a una API o se procesaría la información obtenida
+                data = response.json()
                 
-                # Ejemplo de datos simulados
-                nombres = "Juan"
-                apellido_paterno = "Pérez"
-                apellido_materno = "Gómez"
-                dni = codigo
-                genero = "Masculino"
-                estado_civil = "Soltero"
-                fecha_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                
-                # Insertar datos en la base de datos
-                guardar_en_db(nombres, apellido_paterno, apellido_materno, dni, genero, estado_civil, fecha_hora)
-                
+                if response.status_code == 200:
+                    if not data.get('success', False):
+                        messagebox.showinfo("DNI no registrado", "El DNI no se encuentra registrado en la base de datos.")
+                        ventana_administrador()
+                    else:
+                        mostrar_datos(data)
+                else:
+                    messagebox.showerror("Error en la consulta", f"Código de estado: {response.status_code}")
+            
             else:
                 messagebox.showinfo("Escaneo de DNI", "No se encontró ningún código de barras válido en la imagen.")
+              
+        
+        except requests.exceptions.RequestException as e:
+            messagebox.showerror("Error en la consulta", f"Error de conexión: {str(e)}")
         
         except Exception as e:
             messagebox.showerror("Error", f"Error al escanear el código de barras: {str(e)}")
 
+    # Función para mostrar los datos del DNI en una nueva ventana
+    def mostrar_datos(data):
+        try:
+            # Crear la ventana de datos del DNI
+            ventana_datos = tk.Toplevel()
+            ventana_datos.title('Datos del DNI')
+            
+            # Mostrar los datos del DNI en etiquetas
+            tk.Label(ventana_datos, text=f'DNI: {data["dni"]}').pack(padx=10, pady=5)
+            tk.Label(ventana_datos, text=f'Nombres: {data["nombres"]}').pack(padx=10, pady=5)
+            tk.Label(ventana_datos, text=f'Apellido Paterno: {data["apellidoPaterno"]}').pack(padx=10, pady=5)
+            tk.Label(ventana_datos, text=f'Apellido Materno: {data["apellidoMaterno"]}').pack(padx=10, pady=5)
+            
+            # Sección para seleccionar el estado civil
+            frame_estado_civil = tk.LabelFrame(ventana_datos, text="Estado Civil")
+            frame_estado_civil.pack(padx=10, pady=5, fill="both", expand="yes")
+            
+            estado_civil_options = ["Soltero/a", "Casado/a", "Viudo/a", "Divorciado/a", "Conviviente", "Otro"]
+            
+            estado_civil = tk.StringVar()
+            estado_civil.set("")  # Valor inicial
+            
+            for option in estado_civil_options:
+                tk.Radiobutton(frame_estado_civil, text=option, variable=estado_civil, value=option).pack(anchor="w")
+            
+            # Botones para registrar datos en la base de datos
+            tk.Button(ventana_datos, text="Registrar - Femenino", command=lambda: guardar_en_db(data, "Femenino", estado_civil.get())).pack(pady=5)
+            tk.Button(ventana_datos, text="Registrar - Masculino", command=lambda: guardar_en_db(data, "Masculino", estado_civil.get())).pack(pady=5)
+            tk.Button(ventana_datos, text="Registrar - Otros", command=lambda: guardar_en_db(data, "Otros", estado_civil.get())).pack(pady=5)
+            
+            # Botón para cerrar la ventana
+            tk.Button(ventana_datos, text="Cerrar", command=ventana_datos.destroy).pack(pady=10)
+        
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al mostrar los datos del DNI: {str(e)}")
+
     # Función para guardar datos en la base de datos
-    def guardar_en_db(nombres, apellido_paterno, apellido_materno, dni, genero, estado_civil, fecha_hora):
+    def guardar_en_db(data, genero, estado_civil):
         try:
             # Conectar a la base de datos
             conn = sqlite3.connect('asistencia.db')
             cursor = conn.cursor()
 
+            # Obtener la fecha y hora actual
+            fecha_hora_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
             # Insertar datos en la tabla 'empleados' junto con la fecha y hora
             cursor.execute('''
                 INSERT INTO empleados (NOMBRES, APELLIDO_PATERNO, APELLIDO_MATERNO, DNI, GENERO, ESTADO_CIVIL, FECHA_HORA)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (nombres, apellido_paterno, apellido_materno, dni, genero, estado_civil, fecha_hora))
+            ''', (data["nombres"], data["apellidoPaterno"], data["apellidoMaterno"], data["dni"], genero, estado_civil, fecha_hora_actual))
 
             # Guardar cambios y cerrar la conexión
             conn.commit()
@@ -415,12 +458,14 @@ def escaneo_archivos():
     # Configuración de la ventana principal
     root = tk.Tk()
     root.title("Escaneo de DNI")
-    root.geometry("400x200")
-    root.configure(background='lightgreen')
+    root.geometry("250x100")
+    root.configure(background='lightblue')
 
     # Botón para escanear el código de barras del DNI
     btn_escanear = tk.Button(root, text="Escanear DNI", command=escanear_dni)
-    btn_escanear.pack(pady=20)    
+    btn_escanear.pack(pady=20)
+
+    
 
 def reportes():
     def obtener_cantidad_registros_diarios(fecha):
@@ -817,7 +862,7 @@ def ventana_administrador():
 
     l5=Label(root, text="DNI")
     l5.place(x=50,y=80)
-    e5=Entry(root, textvariable=miDNI, width=10)
+    e5=Entry(root, textvariable=miDNI,  width=10)
     e5.place(x=100,y=80)
 
     l6=Label(root,text="GENERO")
