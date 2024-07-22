@@ -193,7 +193,7 @@ def exportar_a_pdf():
         pdf = PDF()
         pdf.set_auto_page_break(auto=True, margin=15)
         pdf.add_page()
-        pdf.set_font("Arial", size=12)
+        pdf.set_font("Arial", size=10)
         
         # Títulos de las columnas
         columnas = ["ID", "NOMBRES", "APELLIDO PATERNO", "APELLIDO MATERNO", "DNI", "GENERO", "ESTADO CIVIL", "FECHA Y HORA"]
@@ -503,7 +503,7 @@ def cargar_a_la_data():
             for index, row in df.iterrows():
                 valores = tuple(row)
                 valores += (fecha_hora_actual,)  # Agregar la fecha y hora actual
-                miCursor.execute("INSERT INTO empleados (NOMBRES, APELLIDO_PATERNO, APELLIDO_MATERNO, DNI, GENERO, ESTADO_CIVIL, FECHA_HORA) VALUES (?, ?, ?, ?, ?, ?, ?)", valores)
+                miCursor.execute("INSERT INTO empleados (ID,NOMBRES, APELLIDO_PATERNO, APELLIDO_MATERNO, DNI, GENERO, ESTADO_CIVIL, FECHA_HORA) VALUES (?, ?, ?, ?, ?, ?, ?,?)", valores)
                 registros_insertados += 1
 
             # Guardar cambios en la base de datos
