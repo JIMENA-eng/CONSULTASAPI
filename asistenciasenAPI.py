@@ -1370,188 +1370,202 @@ def ventana_administrador():
     
 def MATRIX():
 
-    # Desarrollo de la Interfaz grafica
-    root=Tk()
-    root.title("REGISTROS DE ESTUDIANTES")
-    root.geometry("600x350")
+    class Matricula:
+        def __init__(self, nombres, apellidos, grado_curso):
+            self.nombres = nombres
+            self.apellidos = apellidos
+            self.grado_curso = grado_curso
 
-    miId=StringVar()
-    miNombre=StringVar()
-    miCargo=StringVar()
-    miSalario=StringVar()
+    class AsistenciaGUI:
+        def __init__(self, root):
+            self.root = root
+            self.root.title("Registro de Asistencia por Grado")
 
-    def conexionBBDD():
-        miConexion=sqlite3.connect("base")
-        miCursor=miConexion.cursor()
+            # Inicializar base de datos de matrícula
+            self.conn_matricula = sqlite3.connect('matricula.db')
+            self.c_matricula = self.conn_matricula.cursor()
+        
+            # Inicializar base de datos de asistencia
+            self.conn_asistencia = sqlite3.connect('asistencia.db')
+            self.c_asistencia = self.conn_asistencia.cursor()
+            self.create_table_asistencia()
 
-        try:
-            miCursor.execute('''
-                CREATE TABLE empleado (
-                ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                NOMBRE VARCHAR(50) NOT NULL,
-                CARGO VARCHAR(50) NOT NULL,
-                SALARIO INT NOT NULL)
-                ''')
-            messagebox.showinfo("CONEXION","Base de Datos Creada exitosamente")
-        except:
-            messagebox.showinfo("CONEXION", "Conexión exitosa con la base de datos")
+            # Crear widgets
+            self.label_grado = tk.Label(root, text="Seleccionar Grado:")
+            self.label_grado.grid(row=0, column=0, padx=10, pady=5)
+            self.combo_grado = ttk.Combobox(root, values=self.obtener_grados())
+            self.combo_grado.grid(row=0, column=1, padx=10, pady=5)
 
-    def eliminarBBDD():
-        miConexion=sqlite3.connect("base")
-        miCursor=miConexion.cursor()
-        if messagebox.askyesno(message="¿Los Datos se perderan definitivamente, Desea continuar?", title="ADVERTENCIA"):
-            miCursor.execute("DROP TABLE empleado")
-        else:
-            pass
-        limpiarCampos()
-        mostrar()
+            self.label_fecha = tk.Label(root, text="Fecha (YYYY-MM-DD):")
+            self.label_fecha.grid(row=1, column=0, padx=10, pady=5)
+            self.entry_fecha = tk.Entry(root)
+            self.entry_fecha.grid(row=1, column=1, padx=10, pady=5)
 
-    def salirAplicacion():
-        valor=messagebox.askquestion("Salir","¿Está seguro que desea salir de la Aplicación?")
-        if valor=="yes":
-            root.destroy()
+            self.btn_consultar_asistencia = tk.Button(root, text="Consultar Asistencia", command=self.consultar_asistencia)
+            self.btn_consultar_asistencia.grid(row=1, column=2, padx=10, pady=5)
 
-    def limpiarCampos():
-        miId.set("")
-        miNombre.set("")
-        miCargo.set("")
-        miSalario.set("")
+            self.treeview_estudiantes = ttk.Treeview(root, columns=("Nombres", "Apellidos", "Grado", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes"))
+            self.treeview_estudiantes.heading("#0", text="ID")
+            self.treeview_estudiantes.heading("Nombres", text="Nombres")
+            self.treeview_estudiantes.heading("Apellidos", text="Apellidos")
+            self.treeview_estudiantes.heading("Grado", text="Grado")
+            self.treeview_estudiantes.heading("Lunes", text="Lunes")
+            self.treeview_estudiantes.heading("Martes", text="Martes")
+            self.treeview_estudiantes.heading("Miércoles", text="Miércoles")
+            self.treeview_estudiantes.heading("Jueves", text="Jueves")
+            self.treeview_estudiantes.heading("Viernes", text="Viernes")
+            self.treeview_estudiantes.column("#0", width=50)
+            self.treeview_estudiantes.column("Nombres", width=150)
+            self.treeview_estudiantes.column("Apellidos", width=150)
+            self.treeview_estudiantes.column("Grado", width=100)
+            self.treeview_estudiantes.column("Lunes", width=75)
+            self.treeview_estudiantes.column("Martes", width=75)
+            self.treeview_estudiantes.column("Miércoles", width=75)
+            self.treeview_estudiantes.column("Jueves", width=75)
+            self.treeview_estudiantes.column("Viernes", width=75)
+            self.treeview_estudiantes.grid(row=3, column=0, columnspan=3, padx=10, pady=10)
 
-    def mensaje():
-        acerca='''
-        Aplicación CRUD
-        Version 1.0
-        Tecnología Python Tkinter
-        '''
-        messagebox.showinfo(title="INFORMACION", message=acerca)
+            self.cargar_estudiantes()
 
-    ################################ Métodos CRUD ##############################
+            self.btn_guardar_asistencia = tk.Button(root, text="Guardar Asistencia", command=self.guardar_asistencia)
+            self.btn_guardar_asistencia.grid(row=4, column=0, columnspan=3, padx=10, pady=10, sticky="WE")
 
-    def crear():
-        miConexion=sqlite3.connect("base")
-        miCursor=miConexion.cursor()
-        try:
-            datos=miNombre.get(),miCargo.get(),miSalario.get()
-            miCursor.execute("INSERT INTO empleado VALUES(NULL,?,?,?)", (datos))
-            miConexion.commit()
-        except:
-            messagebox.showwarning("ADVERTENCIA","Ocurrió un error al crear el registro, verifique conexión con BBDD")
-            pass
-        limpiarCampos()
-        mostrar()
+            self.btn_ver_aspitas = tk.Button(root, text="Ver Aspitas", command=self.ver_aspitas)
+            self.btn_ver_aspitas.grid(row=5, column=0, columnspan=3, padx=10, pady=10, sticky="WE")
 
-    def mostrar():
-        miConexion=sqlite3.connect("base")
-        miCursor=miConexion.cursor()
-        registros=tree.get_children()
-        for elemento in registros:
-            tree.delete(elemento)
+            self.treeview_estudiantes.bind("<Button-1>", self.marcar_asistencia)
 
-        try:
-            miCursor.execute("SELECT * FROM empleado")
-            for row in miCursor:
-                tree.insert("",0,text=row[0], values=(row[1],row[2],row[3]))
-        except:
-            pass
+        def create_table_asistencia(self):
+            self.c_asistencia.execute('''CREATE TABLE IF NOT EXISTS asistencia (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                id_estudiante INTEGER,
+                                fecha TEXT,
+                                lunes BOOLEAN,
+                                martes BOOLEAN,
+                                miércoles BOOLEAN,
+                                jueves BOOLEAN,
+                                viernes BOOLEAN,
+                                FOREIGN KEY (id_estudiante) REFERENCES matricula (id)
+                                )''')
+            self.conn_asistencia.commit()
 
-                    ################################## Tabla ################################
-    tree=ttk.Treeview(height=10, columns=('#0','#1','#2'))
-    tree.place(x=0, y=130)
-    tree.column('#0',width=100)
-    tree.heading('#0', text="ID", anchor=CENTER)
-    tree.heading('#1', text="Nombre del Empleado", anchor=CENTER)
-    tree.heading('#2', text="Cargo", anchor=CENTER)
-    tree.column('#3', width=100)
-    tree.heading('#3', text="Salario", anchor=CENTER)
+        def marcar_asistencia(self, event):
+            item_id = self.treeview_estudiantes.focus()
+            column_id = self.treeview_estudiantes.identify_column(event.x)
+            
+            # Verificar si se hizo clic en una columna válida
+            if column_id in ["#4", "#5", "#6", "#7", "#8"]:  # Columnas correspondientes a Lunes, Martes, Miércoles, Jueves, Viernes
+                # Obtener el día de la semana correspondiente
+                day = self.treeview_estudiantes.heading(column_id)["text"]
+                # Obtener el índice de la columna en el Treeview
+                column_index = self.treeview_estudiantes["columns"].index(day)
+                # Obtener los valores del ítem seleccionado en el Treeview
+                item_values = self.treeview_estudiantes.item(item_id)["values"]
+                
+                # Verificar si el ítem tiene valores y si el índice de columna es válido
+                if item_values and len(item_values) > column_index:
+                    current_value = item_values[column_index]
+                    # Cambiar el valor actual
+                    new_value = "✔" if current_value == "" else ""
+                    # Actualizar el valor en el Treeview
+                    self.treeview_estudiantes.set(item_id, column_id, new_value)
+                else:
+                    messagebox.showerror("Error", "No se pudo obtener los valores del estudiante seleccionado.")
 
-    def seleccionarUsandoClick(event):
-        item=tree.identify('item',event.x,event.y)
-        miId.set(tree.item(item,"text"))
-        miNombre.set(tree.item(item,"values")[0])
-        miCargo.set(tree.item(item,"values")[1])
-        miSalario.set(tree.item(item,"values")[2])
+        def guardar_asistencia(self):
+            fecha = self.entry_fecha.get().strip()
+            if not fecha:
+                messagebox.showerror("Error", "Ingrese una fecha válida (YYYY-MM-DD).")
+                return
+            
+            # Iterar sobre todos los estudiantes en el Treeview
+            for item_id in self.treeview_estudiantes.get_children():
+                estudiante_id = self.treeview_estudiantes.item(item_id)["text"]
+                # Obtener los valores de asistencia de cada día
+                lunes = "✔" if self.treeview_estudiantes.set(item_id, "#4") else "❌"
+                martes = "✔" if self.treeview_estudiantes.set(item_id, "#5") else "❌"
+                miercoles = "✔" if self.treeview_estudiantes.set(item_id, "#6") else "❌"
+                jueves = "✔" if self.treeview_estudiantes.set(item_id, "#7") else "❌"
+                viernes = "✔" if self.treeview_estudiantes.set(item_id, "#8") else "❌"
+                
+                try:
+                    self.c_asistencia.execute("INSERT INTO asistencia (id_estudiante, fecha, lunes, martes, miércoles, jueves, viernes) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                            (estudiante_id, fecha, lunes, martes, miercoles, jueves, viernes))
+                    self.conn_asistencia.commit()
+                except sqlite3.Error as e:
+                    messagebox.showerror("Error", f"Error al guardar asistencia: {e}")
+                    return
+            
+            messagebox.showinfo("Asistencia Guardada", f"Asistencia para la fecha {fecha} guardada exitosamente.")
 
-    tree.bind("<Double-1>", seleccionarUsandoClick)
+        def ver_aspitas(self):
+            # Mostrar todas las aspitas en el Treeview
+            for item_id in self.treeview_estudiantes.get_children():
+                self.treeview_estudiantes.set(item_id, "#4", "✔","❌")
+                self.treeview_estudiantes.set(item_id, "#5", "✔","❌")
+                self.treeview_estudiantes.set(item_id, "#6", "✔","❌")
+                self.treeview_estudiantes.set(item_id, "#7", "✔","❌")
+                self.treeview_estudiantes.set(item_id, "#8", "✔","❌")
+
+        def consultar_asistencia(self):
+            grado = self.combo_grado.get()
+            fecha = self.entry_fecha.get().strip()
+
+            if not fecha:
+                messagebox.showerror("Error", "Ingrese una fecha válida (YYYY-MM-DD).")
+                return
+
+            # Limpiar el Treeview antes de cargar nuevos datos
+            self.treeview_estudiantes.delete(*self.treeview_estudiantes.get_children())
+
+            # Consultar la base de datos para obtener los estudiantes y su asistencia
+            self.c_matricula.execute("SELECT id, nombres, apellidos FROM matricula WHERE grado_curso = ?", (grado,))
+            estudiantes = self.c_matricula.fetchall()
+
+            for estudiante in estudiantes:
+                estudiante_id = estudiante[0]
+                nombre = estudiante[1]
+                apellido = estudiante[2]
+
+                # Obtener la asistencia del estudiante para la fecha especificada
+                self.c_asistencia.execute("SELECT lunes, martes, miércoles, jueves, viernes FROM asistencia WHERE id_estudiante = ? AND fecha = ?",
+                                        (estudiante_id, fecha))
+                asistencia = self.c_asistencia.fetchone()
+
+                # Insertar el estudiante y su asistencia en el Treeview
+                if asistencia:
+                    lunes = "✔" if asistencia[0] else ""
+                    martes = "✔" if asistencia[1] else ""
+                    miercoles = "✔" if asistencia[2] else ""
+                    jueves = "✔" if asistencia[3] else ""
+                    viernes = "✔" if asistencia[4] else ""
+                else:
+                    lunes = martes = miercoles = jueves = viernes = ""
+
+                self.treeview_estudiantes.insert("", "end", text=estudiante_id, values=(nombre, apellido, grado, lunes, martes, miercoles, jueves, viernes))
+
+        def obtener_grados(self):
+            self.c_matricula.execute("SELECT DISTINCT grado_curso FROM matricula")
+            grados = [row[0] for row in self.c_matricula.fetchall()]
+            return grados
+
+        def cargar_estudiantes(self):
+            self.treeview_estudiantes.delete(*self.treeview_estudiantes.get_children())
+            self.c_matricula.execute("SELECT id, nombres, apellidos, grado_curso FROM matricula")
+            estudiantes = self.c_matricula.fetchall()
+            for estudiante in estudiantes:
+                self.treeview_estudiantes.insert("", "end", text=estudiante[0], values=(estudiante[1], estudiante[2], estudiante[3]))
+
+        def __del__(self):
+            self.conn_matricula.close()
+            self.conn_asistencia.close()
+
+    if __name__ == "__main__":
+        root = tk.Tk()
+        app = AsistenciaGUI(root)
+        root.mainloop()
 
 
-
-    def actualizar():
-        miConexion=sqlite3.connect("base")
-        miCursor=miConexion.cursor()
-        try:
-            datos=miNombre.get(),miCargo.get(),miSalario.get()
-            miCursor.execute("UPDATE empleado SET NOMBRE=?, CARGO=?, SALARIO=? WHERE ID="+miId.get(), (datos))
-            miConexion.commit()
-        except:
-            messagebox.showwarning("ADVERTENCIA","Ocurrió un error al actualizar el registro")
-            pass
-        limpiarCampos()
-        mostrar()
-
-    def borrar():
-        miConexion=sqlite3.connect("base")
-        miCursor=miConexion.cursor()
-        try:
-            if messagebox.askyesno(message="¿Realmente desea eliminar el registro?", title="ADVERTENCIA"):
-                miCursor.execute("DELETE FROM empleado WHERE ID="+miId.get())
-                miConexion.commit()
-        except:
-            messagebox.showwarning("ADVERTENCIA","Ocurrió un error al tratar de eliminar el registro")
-            pass
-        limpiarCampos()
-        mostrar()
-
-    ###################### Colocar widgets en la VISTA ######################
-    ########## Creando Los menus ###############
-    menubar=Menu(root)
-    menubasedat=Menu(menubar,tearoff=0)
-    menubasedat.add_command(label="Crear/Conectar Base de Datos", command=conexionBBDD)
-    menubasedat.add_command(label="Eliminar Base de Datos", command=eliminarBBDD)
-    menubasedat.add_command(label="Salir", command=salirAplicacion)
-    menubar.add_cascade(label="Inicio", menu=menubasedat)
-
-    ayudamenu=Menu(menubar,tearoff=0)
-    ayudamenu.add_command(label="Resetear Campos", command=limpiarCampos)
-    ayudamenu.add_command(label="Acerca", command=mensaje)
-    menubar.add_cascade(label="Ayuda",menu=ayudamenu)
-
-    ############## Creando etiquetas y cajas de texto ###########################
-    e1=Entry(root, textvariable=miId)
-
-    l2=Label(root, text="Nombre")
-    l2.place(x=50,y=10)
-    e2=Entry(root, textvariable=miNombre, width=50)
-    e2.place(x=100, y=10)
-
-    l3=Label(root, text="Cargo")
-    l3.place(x=50,y=40)
-    e3=Entry(root, textvariable=miCargo)
-    e3.place(x=100, y=40)
-
-    l4=Label(root, text="Salario")
-    l4.place(x=280,y=40)
-    e4=Entry(root, textvariable=miSalario, width=10)
-    e4.place(x=320, y=40)
-
-    l5=Label(root, text="USD")
-    l5.place(x=380,y=40)
-
-    ################# Creando botones ###########################
-
-    b1=Button(root, text="Crear Registro", command=crear)
-    b1.place(x=50, y=90)
-    b2=Button(root, text="Modificar Registro", command=actualizar)
-    b2.place(x=180, y=90)
-    b3=Button(root, text="Mostrar Lista", command=mostrar)
-    b3.place(x=320, y=90)
-    b4=Button(root, text="Eliminar Registro",bg="red", command=borrar)
-    b4.place(x=450, y=90)
-
-
-    root.config(menu=menubar)
-
-
-    root.mainloop()
 
 
 if __name__ == "__main__":
