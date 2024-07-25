@@ -1,11 +1,6 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import ttk, messagebox
 import sqlite3
-
-class Curso:
-    def __init__(self, nombre, grado):
-        self.nombre = nombre
-        self.grado = grado
 
 class Matricula:
     def __init__(self, nombres, apellidos, grado_curso):
@@ -13,108 +8,117 @@ class Matricula:
         self.apellidos = apellidos
         self.grado_curso = grado_curso
 
-class RegistroCursosGUI:
+class AsistenciaGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Registro de Cursos y Matrícula")
-
-        # Inicializar base de datos de cursos
-        self.conn_cursos = sqlite3.connect('registro_cursos.db')
-        self.c_cursos = self.conn_cursos.cursor()
-        self.create_table_cursos()
+        self.root.title("Registro de Asistencia por Grado")
 
         # Inicializar base de datos de matrícula
         self.conn_matricula = sqlite3.connect('matricula.db')
         self.c_matricula = self.conn_matricula.cursor()
         self.create_table_matricula()
 
+        # Inicializar base de datos de asistencia
+        self.conn_asistencia = sqlite3.connect('asistencia.db')
+        self.c_asistencia = self.conn_asistencia.cursor()
+        self.create_table_asistencia()
+
         # Crear widgets
-        self.label_nombre = tk.Label(root, text="Nombre del Curso:")
-        self.label_nombre.grid(row=0, column=0, padx=10, pady=5)
-        self.entry_nombre = tk.Entry(root)
-        self.entry_nombre.grid(row=0, column=1, padx=10, pady=5)
+        self.label_grado = tk.Label(root, text="Seleccionar Grado:")
+        self.label_grado.grid(row=0, column=0, padx=10, pady=5)
+        self.combo_grado = ttk.Combobox(root, values=self.obtener_grados())
+        self.combo_grado.grid(row=0, column=1, padx=10, pady=5)
 
-        self.label_grado = tk.Label(root, text="Grado del Curso:")
-        self.label_grado.grid(row=1, column=0, padx=10, pady=5)
-        self.entry_grado = tk.Entry(root)
-        self.entry_grado.grid(row=1, column=1, padx=10, pady=5)
+        self.btn_matricular = tk.Button(root, text="Matricular", command=self.matricular_estudiante)
+        self.btn_matricular.grid(row=1, column=0, columnspan=2, padx=10, pady=10, sticky="WE")
 
-        self.btn_agregar_curso = tk.Button(root, text="Agregar Curso", command=self.agregar_curso)
-        self.btn_agregar_curso.grid(row=2, column=0, columnspan=2, padx=10, pady=10, sticky="WE")
+        self.btn_registrar_asistencia = tk.Button(root, text="Registrar Asistencia", command=self.registrar_asistencia)
+        self.btn_registrar_asistencia.grid(row=2, column=0, columnspan=2, padx=10, pady=10, sticky="WE")
 
-        self.label_buscar_grado = tk.Label(root, text="Buscar Estudiantes por Grado:")
-        self.label_buscar_grado.grid(row=3, column=0, padx=10, pady=5)
-        self.entry_buscar_grado = tk.Entry(root)
-        self.entry_buscar_grado.grid(row=3, column=1, padx=10, pady=5)
+        self.treeview_estudiantes = ttk.Treeview(root, columns=("Nombres", "Apellidos", "Grado"))
+        self.treeview_estudiantes.heading("#0", text="ID")
+        self.treeview_estudiantes.heading("Nombres", text="Nombres")
+        self.treeview_estudiantes.heading("Apellidos", text="Apellidos")
+        self.treeview_estudiantes.heading("Grado", text="Grado")
+        self.treeview_estudiantes.column("#0", width=50)
+        self.treeview_estudiantes.column("Nombres", width=150)
+        self.treeview_estudiantes.column("Apellidos", width=150)
+        self.treeview_estudiantes.column("Grado", width=100)
+        self.treeview_estudiantes.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
 
-        self.btn_buscar_estudiantes = tk.Button(root, text="Buscar Estudiantes", command=self.buscar_estudiantes_por_grado)
-        self.btn_buscar_estudiantes.grid(row=4, column=0, columnspan=2, padx=10, pady=10, sticky="WE")
-
-        self.resultado_text = tk.Text(root, height=10, width=50, wrap="word")
-        self.resultado_text.grid(row=5, column=0, columnspan=2, padx=10, pady=10)
-
-    def create_table_cursos(self):
-        self.c_cursos.execute('''CREATE TABLE IF NOT EXISTS cursos (
-                            codigo TEXT PRIMARY KEY,
-                            nombre TEXT NOT NULL,
-                            grado TEXT NOT NULL
-                            )''')
-        self.conn_cursos.commit()
+        self.cargar_estudiantes()
 
     def create_table_matricula(self):
         self.c_matricula.execute('''CREATE TABLE IF NOT EXISTS matricula (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             nombres TEXT NOT NULL,
                             apellidos TEXT NOT NULL,
-                            grado_curso TEXT NOT NULL,
-                            FOREIGN KEY (grado_curso) REFERENCES cursos (grado)
+                            grado_curso TEXT NOT NULL
                             )''')
         self.conn_matricula.commit()
 
-    def agregar_curso(self):
-        nombre = self.entry_nombre.get()
-        grado = self.entry_grado.get()
+    def create_table_asistencia(self):
+        self.c_asistencia.execute('''CREATE TABLE IF NOT EXISTS asistencia (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            id_estudiante INTEGER,
+                            fecha TEXT,
+                            presente BOOLEAN,
+                            FOREIGN KEY (id_estudiante) REFERENCES matricula (id)
+                            )''')
+        self.conn_asistencia.commit()
 
-        if nombre and grado:
-            codigo = f"{nombre[:3]}-{grado}"  # Generar código basado en nombre y grado
-            curso = Curso(nombre, grado)
+    def matricular_estudiante(self):
+        nombres = tk.simpledialog.askstring("Matrícula", "Ingrese los nombres del estudiante:")
+        apellidos = tk.simpledialog.askstring("Matrícula", "Ingrese los apellidos del estudiante:")
+        grado = self.combo_grado.get()
+
+        if nombres and apellidos and grado:
+            estudiante = Matricula(nombres, apellidos, grado)
             try:
-                self.c_cursos.execute("INSERT INTO cursos (codigo, nombre, grado) VALUES (?, ?, ?)",
-                                    (codigo, curso.nombre, curso.grado))
-                self.conn_cursos.commit()
-                messagebox.showinfo("Registro de Cursos", f"Curso {curso.nombre} registrado con éxito.")
-                self.entry_nombre.delete(0, tk.END)
-                self.entry_grado.delete(0, tk.END)
-            except sqlite3.IntegrityError:
-                messagebox.showerror("Error", "Ya existe un curso con el mismo código.")
+                self.c_matricula.execute("INSERT INTO matricula (nombres, apellidos, grado_curso) VALUES (?, ?, ?)",
+                                        (estudiante.nombres, estudiante.apellidos, estudiante.grado_curso))
+                self.conn_matricula.commit()
+                messagebox.showinfo("Matrícula", f"Estudiante {estudiante.nombres} {estudiante.apellidos} matriculado en {estudiante.grado_curso}.")
+                self.cargar_estudiantes()
+            except sqlite3.Error as e:
+                messagebox.showerror("Error", f"Error al matricular estudiante: {e}")
         else:
             messagebox.showerror("Error", "Por favor, complete todos los campos.")
 
-    def buscar_estudiantes_por_grado(self):
-        grado = self.entry_buscar_grado.get()
+    def registrar_asistencia(self):
+        seleccion = self.treeview_estudiantes.selection()
+        if seleccion:
+            estudiante_id = self.treeview_estudiantes.item(seleccion)["text"]
+            fecha = "2024-07-26"  # Ejemplo de fecha (se puede obtener dinámicamente)
+            presente = True  # Ejemplo de asistencia (se puede obtener dinámicamente)
 
-        if grado:
-            self.c_matricula.execute("SELECT nombres, apellidos FROM matricula WHERE grado_curso=?", (grado,))
-            estudiantes = self.c_matricula.fetchall()
-            if estudiantes:
-                resultado = f"Estudiantes matriculados en el grado {grado}:\n"
-                for estudiante in estudiantes:
-                    resultado += f"Nombres: {estudiante[0]}, Apellidos: {estudiante[1]}\n"
-            else:
-                resultado = f"No se encontraron estudiantes matriculados en el grado {grado}."
-            self.mostrar_resultado(resultado)
+            try:
+                self.c_asistencia.execute("INSERT INTO asistencia (id_estudiante, fecha, presente) VALUES (?, ?, ?)",
+                                        (estudiante_id, fecha, presente))
+                self.conn_asistencia.commit()
+                messagebox.showinfo("Registro de Asistencia", f"Asistencia registrada para estudiante ID {estudiante_id}.")
+            except sqlite3.Error as e:
+                messagebox.showerror("Error", f"Error al registrar asistencia: {e}")
         else:
-            messagebox.showerror("Error", "Por favor, ingrese un grado para buscar estudiantes.")
+            messagebox.showerror("Error", "Por favor, seleccione un estudiante.")
 
-    def mostrar_resultado(self, resultado):
-        self.resultado_text.delete(1.0, tk.END)
-        self.resultado_text.insert(tk.END, resultado)
+    def obtener_grados(self):
+        self.c_matricula.execute("SELECT DISTINCT grado_curso FROM matricula")
+        grados = [row[0] for row in self.c_matricula.fetchall()]
+        return grados
+
+    def cargar_estudiantes(self):
+        self.treeview_estudiantes.delete(*self.treeview_estudiantes.get_children())
+        self.c_matricula.execute("SELECT id, nombres, apellidos, grado_curso FROM matricula")
+        estudiantes = self.c_matricula.fetchall()
+        for estudiante in estudiantes:
+            self.treeview_estudiantes.insert("", "end", text=estudiante[0], values=(estudiante[1], estudiante[2], estudiante[3]))
 
     def __del__(self):
-        self.conn_cursos.close()
         self.conn_matricula.close()
+        self.conn_asistencia.close()
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = RegistroCursosGUI(root)
+    app = AsistenciaGUI(root)
     root.mainloop()
