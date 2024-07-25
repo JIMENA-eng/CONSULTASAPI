@@ -29,10 +29,9 @@ class RegistroCursosGUI:
         self.c_matricula = self.conn_matricula.cursor()
         self.create_table_matricula()
 
-        # Inicializar base de datos de empleados (simulado para prueba)
-        self.conn_empleados = sqlite3.connect(':memory:')  # Usar memoria para este ejemplo
+        # Inicializar base de datos de empleados
+        self.conn_empleados = sqlite3.connect('asistencia.db')
         self.c_empleados = self.conn_empleados.cursor()
-        self.create_table_empleados()
 
         # Crear widgets
         self.label_dni = tk.Label(root, text="Ingrese DNI del Empleado:")
@@ -90,19 +89,6 @@ class RegistroCursosGUI:
                             )''')
         self.conn_matricula.commit()
 
-    def create_table_empleados(self):
-        self.c_empleados.execute('''CREATE TABLE IF NOT EXISTS empleados (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            NOMBRES TEXT,
-                            APELLIDO_PATERNO TEXT,
-                            APELLIDO_MATERNO TEXT,
-                            DNI TEXT,
-                            GENERO TEXT,
-                            ESTADO_CIVIL TEXT,
-                            FECHA_HORA TEXT
-                            )''')
-        self.conn_empleados.commit()
-
     def buscar_empleado(self):
         dni = self.entry_dni.get()
 
@@ -130,7 +116,7 @@ class RegistroCursosGUI:
                 self.conn_cursos.commit()
                 messagebox.showinfo("Registro de Cursos", f"Curso {curso.nombre} registrado con éxito.")
 
-                # Obtener nombres y apellidos del empleado por DNI (simulado)
+                # Obtener nombres y apellidos del empleado por DNI
                 dni = self.entry_dni.get()
                 self.c_empleados.execute("SELECT NOMBRES, APELLIDO_PATERNO, APELLIDO_MATERNO FROM empleados WHERE DNI=?", (dni,))
                 empleado = self.c_empleados.fetchone()
