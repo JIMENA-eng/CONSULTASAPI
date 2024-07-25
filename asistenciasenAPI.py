@@ -128,6 +128,7 @@ def inicio_usuario():
 
                 if resultado and resultado[0] == contrasena:
                     messagebox.showinfo("Inicio de Sesión Exitoso", f"Bienvenido, {usuario}!")
+                    MATRIX()
                 else:
                     messagebox.showerror("Error", "Usuario o contraseña incorrectos.")
             else:
