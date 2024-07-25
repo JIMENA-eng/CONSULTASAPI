@@ -960,10 +960,10 @@ def ventana_administrador():
                 self.grado = grado
 
         class Matricula:
-            def __init__(self, nombres, apellidos, codigo_curso):
+            def __init__(self, nombres, apellidos, grado_curso):
                 self.nombres = nombres
                 self.apellidos = apellidos
-                self.codigo_curso = codigo_curso
+                self.grado_curso = grado_curso
 
         class RegistroCursosGUI:
             def __init__(self, root):
@@ -998,35 +998,30 @@ def ventana_administrador():
                 self.entry_nombre = tk.Entry(root)
                 self.entry_nombre.grid(row=2, column=1, padx=10, pady=5)
 
-                self.label_codigo = tk.Label(root, text="Código del Curso:")
-                self.label_codigo.grid(row=3, column=0, padx=10, pady=5)
-                self.entry_codigo = tk.Entry(root)
-                self.entry_codigo.grid(row=3, column=1, padx=10, pady=5)
-
                 self.label_grado = tk.Label(root, text="Grado del Curso:")
-                self.label_grado.grid(row=4, column=0, padx=10, pady=5)
+                self.label_grado.grid(row=3, column=0, padx=10, pady=5)
                 self.entry_grado = tk.Entry(root)
-                self.entry_grado.grid(row=4, column=1, padx=10, pady=5)
+                self.entry_grado.grid(row=3, column=1, padx=10, pady=5)
 
                 self.btn_agregar_curso = tk.Button(root, text="Agregar Curso", command=self.agregar_curso)
-                self.btn_agregar_curso.grid(row=5, column=0, columnspan=2, padx=10, pady=10, sticky="WE")
+                self.btn_agregar_curso.grid(row=4, column=0, columnspan=2, padx=10, pady=10, sticky="WE")
 
                 self.label_buscar_grado = tk.Label(root, text="Buscar Cursos por Grado:")
-                self.label_buscar_grado.grid(row=6, column=0, padx=10, pady=5)
+                self.label_buscar_grado.grid(row=5, column=0, padx=10, pady=5)
                 self.entry_buscar_grado = tk.Entry(root)
-                self.entry_buscar_grado.grid(row=6, column=1, padx=10, pady=5)
+                self.entry_buscar_grado.grid(row=5, column=1, padx=10, pady=5)
 
                 self.btn_buscar_grado = tk.Button(root, text="Buscar", command=self.buscar_cursos_por_grado)
-                self.btn_buscar_grado.grid(row=7, column=0, columnspan=2, padx=10, pady=10, sticky="WE")
+                self.btn_buscar_grado.grid(row=6, column=0, columnspan=2, padx=10, pady=10, sticky="WE")
 
                 self.label_matricula = tk.Label(root, text="Matricular en Curso:")
-                self.label_matricula.grid(row=8, column=0, padx=10, pady=5)
+                self.label_matricula.grid(row=7, column=0, padx=10, pady=5)
 
                 self.btn_matricular = tk.Button(root, text="Matricular", command=self.matricular_empleado)
-                self.btn_matricular.grid(row=8, column=1, padx=10, pady=5)
+                self.btn_matricular.grid(row=7, column=1, padx=10, pady=5)
 
                 self.resultado_text = tk.Text(root, height=10, width=50, wrap="word")
-                self.resultado_text.grid(row=9, column=0, columnspan=2, padx=10, pady=10)
+                self.resultado_text.grid(row=8, column=0, columnspan=2, padx=10, pady=10)
 
             def create_table_cursos(self):
                 self.c_cursos.execute('''CREATE TABLE IF NOT EXISTS cursos (
@@ -1041,8 +1036,8 @@ def ventana_administrador():
                                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                                     nombres TEXT NOT NULL,
                                     apellidos TEXT NOT NULL,
-                                    codigo_curso TEXT NOT NULL,
-                                    FOREIGN KEY (codigo_curso) REFERENCES cursos (codigo)
+                                    grado_curso TEXT NOT NULL,
+                                    FOREIGN KEY (grado_curso) REFERENCES cursos (grado)
                                     )''')
                 self.conn_matricula.commit()
 
@@ -1062,10 +1057,10 @@ def ventana_administrador():
 
             def agregar_curso(self):
                 nombre = self.entry_nombre.get()
-                codigo = self.entry_codigo.get()
                 grado = self.entry_grado.get()
 
-                if nombre and codigo and grado:
+                if nombre and grado:
+                    codigo = f"{nombre[:3]}-{grado}"  # Generar código basado en nombre y grado
                     curso = Curso(nombre, codigo, grado)
                     try:
                         self.c_cursos.execute("INSERT INTO cursos (codigo, nombre, grado) VALUES (?, ?, ?)",
@@ -1073,7 +1068,6 @@ def ventana_administrador():
                         self.conn_cursos.commit()
                         messagebox.showinfo("Registro de Cursos", f"Curso {curso.nombre} registrado con éxito.")
                         self.entry_nombre.delete(0, tk.END)
-                        self.entry_codigo.delete(0, tk.END)
                         self.entry_grado.delete(0, tk.END)
                     except sqlite3.IntegrityError:
                         messagebox.showerror("Error", "Ya existe un curso con el mismo código.")
@@ -1082,9 +1076,9 @@ def ventana_administrador():
 
             def matricular_empleado(self):
                 dni = self.entry_dni.get()
-                codigo_curso = self.entry_codigo.get()
+                grado = self.entry_grado.get()
 
-                if dni and codigo_curso:
+                if dni and grado:
                     # Buscar empleado por DNI
                     self.c_empleados.execute("SELECT NOMBRES, APELLIDO_PATERNO, APELLIDO_MATERNO FROM empleados WHERE DNI=?", (dni,))
                     empleado = self.c_empleados.fetchone()
@@ -1092,16 +1086,16 @@ def ventana_administrador():
                         nombres, apellido_paterno, apellido_materno = empleado
                         # Insertar matrícula en la tabla matricula
                         try:
-                            self.c_matricula.execute("INSERT INTO matricula (nombres, apellidos, codigo_curso) VALUES (?, ?, ?)",
-                                                    (nombres, f"{apellido_paterno} {apellido_materno}", codigo_curso))
+                            self.c_matricula.execute("INSERT INTO matricula (nombres, apellidos, grado_curso) VALUES (?, ?, ?)",
+                                                    (nombres, f"{apellido_paterno} {apellido_materno}", grado))
                             self.conn_matricula.commit()
-                            messagebox.showinfo("Matrícula", f"Empleado matriculado en el curso {codigo_curso}.")
+                            messagebox.showinfo("Matrícula", f"Empleado matriculado en el curso de grado {grado}.")
                         except sqlite3.IntegrityError:
                             messagebox.showerror("Error", "El empleado ya está matriculado en este curso.")
                     else:
                         messagebox.showerror("Error", "No se encontró un empleado con el DNI especificado.")
                 else:
-                    messagebox.showerror("Error", "Por favor, ingrese el DNI del empleado y el código del curso.")
+                    messagebox.showerror("Error", "Por favor, ingrese el DNI del empleado y el grado del curso.")
 
             def buscar_cursos_por_grado(self):
                 grado = self.entry_buscar_grado.get()
@@ -1132,7 +1126,7 @@ def ventana_administrador():
             root = tk.Tk()
             app = RegistroCursosGUI(root)
             root.mainloop()
-            
+                    
             
     tree = ttk.Treeview(height=10, columns=('#0', '#1', '#2', '#3', '#4', '#5', '#6', '#7'))
     tree.place(x=0, y=300)
