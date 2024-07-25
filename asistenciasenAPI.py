@@ -51,6 +51,7 @@ def inicio_dmin():
 def inicio_usuario():
     top.destroy()
     messagebox.showinfo('inicio de sesion', 'sesion inicia como usuario')
+    MATRIX()
 
 top=Tk()
 top.title('seleciona tipo de usuario' )
@@ -710,7 +711,7 @@ def ventana_administrador():
                     ESTADO_CIVIL TEXT,
                     FECHA_HORA TEXT
                 )''')
-            
+    
             messagebox.showinfo("CONEXION", "Base de datos creada")
         except sqlite3.Error as error:
             messagebox.showerror("ERROR", f"Error al conectar a la base de datos: {error}")
@@ -963,136 +964,189 @@ def ventana_administrador():
     conexionBBDD()
     
 def MATRIX():
-# Función para conectar a la base de datos o crearla si no existe
-    def conectar_base_de_datos():
-        conexion = sqlite3.connect("asistencia.db")
-        cursor = conexion.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS alumnos (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nombre TEXT,
-                dni TEXT UNIQUE
-            )
-        ''')
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS cursos (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                id_alumno INTEGER,
-                dia_semana TEXT,
-                curso TEXT,
-                asistio INTEGER DEFAULT 0, -- 0 = No asistió, 1 = Asistió
-                FOREIGN KEY (id_alumno) REFERENCES alumnos (id)
-            )
-        ''')
-        conexion.commit()
-        return conexion, cursor
 
-    # Función para registrar la asistencia del alumno
-    def registrar_asistencia():
-        nombre = entry_nombre.get()
-        dni = entry_dni.get()
-        dia_semana = combo_dias.get()
-        curso = entry_curso.get()
-        asistio = var_asistio.get()
+    # Desarrollo de la Interfaz grafica
+    root=Tk()
+    root.title("Aplicación CRUD con Base de Datos")
+    root.geometry("600x350")
 
-        if not nombre or not dni or not curso:
-            messagebox.showwarning("Datos incompletos", "Por favor, ingresa el nombre, DNI y curso del alumno.")
-            return
+    miId=StringVar()
+    miNombre=StringVar()
+    miCargo=StringVar()
+    miSalario=StringVar()
+
+    def conexionBBDD():
+        miConexion=sqlite3.connect("base")
+        miCursor=miConexion.cursor()
 
         try:
-            conexion, cursor = conectar_base_de_datos()
+            miCursor.execute('''
+                CREATE TABLE empleado (
+                ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                NOMBRE VARCHAR(50) NOT NULL,
+                CARGO VARCHAR(50) NOT NULL,
+                SALARIO INT NOT NULL)
+                ''')
+            messagebox.showinfo("CONEXION","Base de Datos Creada exitosamente")
+        except:
+            messagebox.showinfo("CONEXION", "Conexión exitosa con la base de datos")
 
-            # Verificar si el alumno ya está registrado
-            cursor.execute("SELECT id FROM alumnos WHERE dni=?", (dni,))
-            resultado_alumno = cursor.fetchone()
-            if not resultado_alumno:
-                cursor.execute("INSERT INTO alumnos (nombre, dni) VALUES (?, ?)", (nombre, dni))
-                id_alumno = cursor.lastrowid
-            else:
-                id_alumno = resultado_alumno[0]
+    def eliminarBBDD():
+        miConexion=sqlite3.connect("base")
+        miCursor=miConexion.cursor()
+        if messagebox.askyesno(message="¿Los Datos se perderan definitivamente, Desea continuar?", title="ADVERTENCIA"):
+            miCursor.execute("DROP TABLE empleado")
+        else:
+            pass
+        limpiarCampos()
+        mostrar()
 
-            # Registrar asistencia del alumno para el curso y día seleccionado
-            cursor.execute("INSERT INTO cursos (id_alumno, dia_semana, curso, asistio) VALUES (?, ?, ?, ?)",
-                        (id_alumno, dia_semana, curso, asistio))
-            conexion.commit()
+    def salirAplicacion():
+        valor=messagebox.askquestion("Salir","¿Está seguro que desea salir de la Aplicación?")
+        if valor=="yes":
+            root.destroy()
 
-            if asistio == 1:
-                estado_asistencia = "Asistió"
-            else:
-                estado_asistencia = "No asistió"
+    def limpiarCampos():
+        miId.set("")
+        miNombre.set("")
+        miCargo.set("")
+        miSalario.set("")
 
-            # Actualizar Treeview con la nueva entrada
-            tree.insert("", "end", values=(nombre, dni, curso, dia_semana, estado_asistencia))
+    def mensaje():
+        acerca='''
+        Aplicación CRUD
+        Version 1.0
+        Tecnología Python Tkinter
+        '''
+        messagebox.showinfo(title="INFORMACION", message=acerca)
 
-            messagebox.showinfo("Registro de asistencia", f"Se registró la asistencia de {nombre} correctamente.")
+    ################################ Métodos CRUD ##############################
 
-        except sqlite3.Error as error:
-            messagebox.showerror("Error de base de datos", f"No se pudo registrar la asistencia: {error}")
+    def crear():
+        miConexion=sqlite3.connect("base")
+        miCursor=miConexion.cursor()
+        try:
+            datos=miNombre.get(),miCargo.get(),miSalario.get()
+            miCursor.execute("INSERT INTO empleado VALUES(NULL,?,?,?)", (datos))
+            miConexion.commit()
+        except:
+            messagebox.showwarning("ADVERTENCIA","Ocurrió un error al crear el registro, verifique conexión con BBDD")
+            pass
+        limpiarCampos()
+        mostrar()
 
-        finally:
-            conexion.close()
+    def mostrar():
+        miConexion=sqlite3.connect("base")
+        miCursor=miConexion.cursor()
+        registros=tree.get_children()
+        for elemento in registros:
+            tree.delete(elemento)
 
-    # Configuración de la ventana principal
-    root = tk.Tk()
-    root.title("Control de Asistencia de Alumnos")
+        try:
+            miCursor.execute("SELECT * FROM empleado")
+            for row in miCursor:
+                tree.insert("",0,text=row[0], values=(row[1],row[2],row[3]))
+        except:
+            pass
 
-    # Crear y configurar elementos de la interfaz gráfica
-    frame_datos = ttk.LabelFrame(root, text="Registro de Asistencia")
-    frame_datos.pack(padx=20, pady=20)
+                    ################################## Tabla ################################
+    tree=ttk.Treeview(height=10, columns=('#0','#1','#2'))
+    tree.place(x=0, y=130)
+    tree.column('#0',width=100)
+    tree.heading('#0', text="ID", anchor=CENTER)
+    tree.heading('#1', text="Nombre del Empleado", anchor=CENTER)
+    tree.heading('#2', text="Cargo", anchor=CENTER)
+    tree.column('#3', width=100)
+    tree.heading('#3', text="Salario", anchor=CENTER)
 
-    lbl_nombre = ttk.Label(frame_datos, text="Nombre:")
-    lbl_nombre.grid(row=0, column=0, padx=5, pady=5)
-    entry_nombre = ttk.Entry(frame_datos)
-    entry_nombre.grid(row=0, column=1, padx=5, pady=5)
+    def seleccionarUsandoClick(event):
+        item=tree.identify('item',event.x,event.y)
+        miId.set(tree.item(item,"text"))
+        miNombre.set(tree.item(item,"values")[0])
+        miCargo.set(tree.item(item,"values")[1])
+        miSalario.set(tree.item(item,"values")[2])
 
-    lbl_dni = ttk.Label(frame_datos, text="DNI:")
-    lbl_dni.grid(row=1, column=0, padx=5, pady=5)
-    entry_dni = ttk.Entry(frame_datos)
-    entry_dni.grid(row=1, column=1, padx=5, pady=5)
+    tree.bind("<Double-1>", seleccionarUsandoClick)
 
-    lbl_dia = ttk.Label(frame_datos, text="Día de la semana:")
-    lbl_dia.grid(row=2, column=0, padx=5, pady=5)
-    dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]
-    combo_dias = ttk.Combobox(frame_datos, values=dias_semana)
-    combo_dias.grid(row=2, column=1, padx=5, pady=5)
-    combo_dias.current(0)
 
-    lbl_curso = ttk.Label(frame_datos, text="Curso:")
-    lbl_curso.grid(row=3, column=0, padx=5, pady=5)
-    entry_curso = ttk.Entry(frame_datos)
-    entry_curso.grid(row=3, column=1, padx=5, pady=5)
 
-    lbl_asistio = ttk.Label(frame_datos, text="Asistió:")
-    lbl_asistio.grid(row=4, column=0, padx=5, pady=5)
-    var_asistio = tk.IntVar()
-    check_asistio = ttk.Checkbutton(frame_datos, variable=var_asistio, onvalue=1, offvalue=0)
-    check_asistio.grid(row=4, column=1, padx=5, pady=5)
+    def actualizar():
+        miConexion=sqlite3.connect("base")
+        miCursor=miConexion.cursor()
+        try:
+            datos=miNombre.get(),miCargo.get(),miSalario.get()
+            miCursor.execute("UPDATE empleado SET NOMBRE=?, CARGO=?, SALARIO=? WHERE ID="+miId.get(), (datos))
+            miConexion.commit()
+        except:
+            messagebox.showwarning("ADVERTENCIA","Ocurrió un error al actualizar el registro")
+            pass
+        limpiarCampos()
+        mostrar()
 
-    btn_registrar = ttk.Button(frame_datos, text="Registrar Asistencia", command=registrar_asistencia)
-    btn_registrar.grid(row=5, columnspan=2, padx=5, pady=10)
+    def borrar():
+        miConexion=sqlite3.connect("base")
+        miCursor=miConexion.cursor()
+        try:
+            if messagebox.askyesno(message="¿Realmente desea eliminar el registro?", title="ADVERTENCIA"):
+                miCursor.execute("DELETE FROM empleado WHERE ID="+miId.get())
+                miConexion.commit()
+        except:
+            messagebox.showwarning("ADVERTENCIA","Ocurrió un error al tratar de eliminar el registro")
+            pass
+        limpiarCampos()
+        mostrar()
 
-    # Crear Treeview para mostrar los registros de asistencia
-    frame_treeview = ttk.LabelFrame(root, text="Asistencia Registrada")
-    frame_treeview.pack(padx=20, pady=20, fill=tk.BOTH, expand=True)
+    ###################### Colocar widgets en la VISTA ######################
+    ########## Creando Los menus ###############
+    menubar=Menu(root)
+    menubasedat=Menu(menubar,tearoff=0)
+    menubasedat.add_command(label="Crear/Conectar Base de Datos", command=conexionBBDD)
+    menubasedat.add_command(label="Eliminar Base de Datos", command=eliminarBBDD)
+    menubasedat.add_command(label="Salir", command=salirAplicacion)
+    menubar.add_cascade(label="Inicio", menu=menubasedat)
 
-    tree = ttk.Treeview(frame_treeview, columns=("Nombre", "DNI", "Curso", "Día Semana", "Asistió"))
-    tree.heading("#0", text="ID")
-    tree.heading("Nombre", text="Nombre")
-    tree.heading("DNI", text="DNI")
-    tree.heading("Curso", text="Curso")
-    tree.heading("Día Semana", text="Día Semana")
-    tree.heading("Asistió", text="Asistió")
-    tree.column("#0", width=50)
-    tree.column("Nombre", width=150)
-    tree.column("DNI", width=100)
-    tree.column("Curso", width=150)
-    tree.column("Día Semana", width=100)
-    tree.column("Asistió", width=100)
-    tree.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+    ayudamenu=Menu(menubar,tearoff=0)
+    ayudamenu.add_command(label="Resetear Campos", command=limpiarCampos)
+    ayudamenu.add_command(label="Acerca", command=mensaje)
+    menubar.add_cascade(label="Ayuda",menu=ayudamenu)
 
-    # Iniciar la aplicación
+    ############## Creando etiquetas y cajas de texto ###########################
+    e1=Entry(root, textvariable=miId)
+
+    l2=Label(root, text="Nombre")
+    l2.place(x=50,y=10)
+    e2=Entry(root, textvariable=miNombre, width=50)
+    e2.place(x=100, y=10)
+
+    l3=Label(root, text="Cargo")
+    l3.place(x=50,y=40)
+    e3=Entry(root, textvariable=miCargo)
+    e3.place(x=100, y=40)
+
+    l4=Label(root, text="Salario")
+    l4.place(x=280,y=40)
+    e4=Entry(root, textvariable=miSalario, width=10)
+    e4.place(x=320, y=40)
+
+    l5=Label(root, text="USD")
+    l5.place(x=380,y=40)
+
+    ################# Creando botones ###########################
+
+    b1=Button(root, text="Crear Registro", command=crear)
+    b1.place(x=50, y=90)
+    b2=Button(root, text="Modificar Registro", command=actualizar)
+    b2.place(x=180, y=90)
+    b3=Button(root, text="Mostrar Lista", command=mostrar)
+    b3.place(x=320, y=90)
+    b4=Button(root, text="Eliminar Registro",bg="red", command=borrar)
+    b4.place(x=450, y=90)
+
+
+    root.config(menu=menubar)
+
+
     root.mainloop()
-
 
 
 if __name__ == "__main__":
