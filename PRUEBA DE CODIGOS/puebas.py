@@ -33,10 +33,9 @@ class AsistenciaGUI:
         self.entry_fecha = tk.Entry(root)
         self.entry_fecha.grid(row=1, column=1, padx=10, pady=5)
 
-        self.btn_consultar_asistencia = tk.Button(root, text="Consultar Asistencia", command=self.consultar_asistencia)
-        self.btn_consultar_asistencia.grid(row=1, column=2, padx=10, pady=5)
+        self.btn_ver_asistencias = tk.Button(root, text="Ver Asistencias", command=self.ver_asistencias)
+        self.btn_ver_asistencias.grid(row=1, column=2, padx=10, pady=5)
 
-        # Crear las columnas para los días de la semana en el Treeview
         self.treeview_estudiantes = ttk.Treeview(root, columns=("Nombres", "Apellidos", "Grado", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes"))
         self.treeview_estudiantes.heading("#0", text="ID")
         self.treeview_estudiantes.heading("Nombres", text="Nombres")
@@ -60,11 +59,12 @@ class AsistenciaGUI:
 
         self.cargar_estudiantes()
 
-        # Botón para guardar la asistencia
         self.btn_guardar_asistencia = tk.Button(root, text="Guardar Asistencia", command=self.guardar_asistencia)
         self.btn_guardar_asistencia.grid(row=4, column=0, columnspan=3, padx=10, pady=10, sticky="WE")
 
-        # Asignar evento de clic para marcar asistencia
+        self.btn_ver_todas_asistencias = tk.Button(root, text="Ver Todas las Asistencias", command=self.ver_todas_asistencias)
+        self.btn_ver_todas_asistencias.grid(row=5, column=0, columnspan=3, padx=10, pady=10, sticky="WE")
+
         self.treeview_estudiantes.bind("<Button-1>", self.marcar_asistencia)
 
     def create_table_asistencia(self):
@@ -130,9 +130,10 @@ class AsistenciaGUI:
         
         messagebox.showinfo("Asistencia Guardada", f"Asistencia para la fecha {fecha} guardada exitosamente.")
 
-    def consultar_asistencia(self):
-        grado = self.combo_grado.get()
+    def ver_asistencias(self):
+        # Obtener la fecha y grado seleccionados
         fecha = self.entry_fecha.get().strip()
+        grado = self.combo_grado.get()
 
         if not fecha:
             messagebox.showerror("Error", "Ingrese una fecha válida (YYYY-MM-DD).")
@@ -153,24 +154,46 @@ class AsistenciaGUI:
             # Obtener la asistencia del estudiante para la fecha especificada
             self.c_asistencia.execute("SELECT lunes, martes, miércoles, jueves, viernes FROM asistencia WHERE id_estudiante = ? AND fecha = ?",
                                       (estudiante_id, fecha))
-            registro_asistencia = self.c_asistencia.fetchone()
+            asistencia = self.c_asistencia.fetchone()
 
-            # Preparar los valores de asistencia para mostrar en el Treeview
-            if registro_asistencia:
-                lunes = "✔" if registro_asistencia[0] else ""
-                martes = "✔" if registro_asistencia[1] else ""
-                miercoles = "✔" if registro_asistencia[2] else ""
-                jueves = "✔" if registro_asistencia[3] else ""
-                viernes = "✔" if registro_asistencia[4] else ""
+            if asistencia:
+                lunes = "✔" if asistencia[0] else ""
+                martes = "✔" if asistencia[1] else ""
+                miercoles = "✔" if asistencia[2] else ""
+                jueves = "✔" if asistencia[3] else ""
+                viernes = "✔" if asistencia[4] else ""
             else:
-                lunes = ""
-                martes = ""
-                miercoles = ""
-                jueves = ""
-                viernes = ""
+                lunes = martes = miercoles = jueves = viernes = ""
 
-            # Insertar en el Treeview
             self.treeview_estudiantes.insert("", "end", text=estudiante_id, values=(nombre, apellido, grado, lunes, martes, miercoles, jueves, viernes))
+
+    def ver_todas_asistencias(self):
+        # Limpiar el Treeview antes de cargar nuevos datos
+        self.treeview_estudiantes.delete(*self.treeview_estudiantes.get_children())
+
+        # Consultar la base de datos para obtener todas las asistencias registradas
+        self.c_asistencia.execute("SELECT id_estudiante, fecha, lunes, martes, miércoles, jueves, viernes FROM asistencia")
+        asistencias = self.c_asistencia.fetchall()
+
+        for asistencia in asistencias:
+            estudiante_id = asistencia[0]
+
+            # Consultar los datos del estudiante
+            self.c_matricula.execute("SELECT nombres, apellidos, grado_curso FROM matricula WHERE id = ?", (estudiante_id,))
+            estudiante = self.c_matricula.fetchone()
+
+            if estudiante:
+                nombre = estudiante[0]
+                apellido = estudiante[1]
+                grado = estudiante[2]
+
+                lunes = "✔" if asistencia[2] else ""
+                martes = "✔" if asistencia[3] else ""
+                miercoles = "✔" if asistencia[4] else ""
+                jueves = "✔" if asistencia[5] else ""
+                viernes = "✔" if asistencia[6] else ""
+
+                self.treeview_estudiantes.insert("", "end", text=estudiante_id, values=(nombre, apellido, grado, lunes, martes, miercoles, jueves, viernes))
 
     def obtener_grados(self):
         self.c_matricula.execute("SELECT DISTINCT grado_curso FROM matricula")
@@ -178,9 +201,7 @@ class AsistenciaGUI:
         return grados
 
     def cargar_estudiantes(self):
-        # Limpiar el Treeview antes de cargar nuevos datos
         self.treeview_estudiantes.delete(*self.treeview_estudiantes.get_children())
-
         self.c_matricula.execute("SELECT id, nombres, apellidos, grado_curso FROM matricula")
         estudiantes = self.c_matricula.fetchall()
         for estudiante in estudiantes:
@@ -194,3 +215,5 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = AsistenciaGUI(root)
     root.mainloop()
+
+   

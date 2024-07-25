@@ -1401,28 +1401,11 @@ def MATRIX():
             self.entry_fecha = tk.Entry(root)
             self.entry_fecha.grid(row=1, column=1, padx=10, pady=5)
 
-            self.btn_consultar_asistencia = tk.Button(root, text="Consultar Asistencia", command=self.consultar_asistencia)
-            self.btn_consultar_asistencia.grid(row=1, column=2, padx=10, pady=5)
+            self.btn_ver_asistencias = tk.Button(root, text="Ver Asistencias", command=self.ver_asistencias)
+            self.btn_ver_asistencias.grid(row=1, column=2, padx=10, pady=5)
 
             self.treeview_estudiantes = ttk.Treeview(root, columns=("Nombres", "Apellidos", "Grado", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes"))
-            self.treeview_estudiantes.heading("#0", text="ID")
-            self.treeview_estudiantes.heading("Nombres", text="Nombres")
-            self.treeview_estudiantes.heading("Apellidos", text="Apellidos")
-            self.treeview_estudiantes.heading("Grado", text="Grado")
-            self.treeview_estudiantes.heading("Lunes", text="Lunes")
-            self.treeview_estudiantes.heading("Martes", text="Martes")
-            self.treeview_estudiantes.heading("Miércoles", text="Miércoles")
-            self.treeview_estudiantes.heading("Jueves", text="Jueves")
-            self.treeview_estudiantes.heading("Viernes", text="Viernes")
-            self.treeview_estudiantes.column("#0", width=50)
-            self.treeview_estudiantes.column("Nombres", width=150)
-            self.treeview_estudiantes.column("Apellidos", width=150)
-            self.treeview_estudiantes.column("Grado", width=100)
-            self.treeview_estudiantes.column("Lunes", width=75)
-            self.treeview_estudiantes.column("Martes", width=75)
-            self.treeview_estudiantes.column("Miércoles", width=75)
-            self.treeview_estudiantes.column("Jueves", width=75)
-            self.treeview_estudiantes.column("Viernes", width=75)
+            # Configuración del Treeview...
             self.treeview_estudiantes.grid(row=3, column=0, columnspan=3, padx=10, pady=10)
 
             self.cargar_estudiantes()
@@ -1430,8 +1413,8 @@ def MATRIX():
             self.btn_guardar_asistencia = tk.Button(root, text="Guardar Asistencia", command=self.guardar_asistencia)
             self.btn_guardar_asistencia.grid(row=4, column=0, columnspan=3, padx=10, pady=10, sticky="WE")
 
-            self.btn_ver_aspitas = tk.Button(root, text="Ver Aspitas", command=self.ver_aspitas)
-            self.btn_ver_aspitas.grid(row=5, column=0, columnspan=3, padx=10, pady=10, sticky="WE")
+            self.btn_ver_todas_asistencias = tk.Button(root, text="Ver Todas las Asistencias", command=self.ver_todas_asistencias_window)
+            self.btn_ver_todas_asistencias.grid(row=5, column=0, columnspan=3, padx=10, pady=10, sticky="WE")
 
             self.treeview_estudiantes.bind("<Button-1>", self.marcar_asistencia)
 
@@ -1482,11 +1465,11 @@ def MATRIX():
             for item_id in self.treeview_estudiantes.get_children():
                 estudiante_id = self.treeview_estudiantes.item(item_id)["text"]
                 # Obtener los valores de asistencia de cada día
-                lunes = "✔" if self.treeview_estudiantes.set(item_id, "#4") else "❌"
-                martes = "✔" if self.treeview_estudiantes.set(item_id, "#5") else "❌"
-                miercoles = "✔" if self.treeview_estudiantes.set(item_id, "#6") else "❌"
-                jueves = "✔" if self.treeview_estudiantes.set(item_id, "#7") else "❌"
-                viernes = "✔" if self.treeview_estudiantes.set(item_id, "#8") else "❌"
+                lunes = "✔" if self.treeview_estudiantes.set(item_id, "#4") else ""
+                martes = "✔" if self.treeview_estudiantes.set(item_id, "#5") else ""
+                miercoles = "✔" if self.treeview_estudiantes.set(item_id, "#6") else ""
+                jueves = "✔" if self.treeview_estudiantes.set(item_id, "#7") else ""
+                viernes = "✔" if self.treeview_estudiantes.set(item_id, "#8") else ""
                 
                 try:
                     self.c_asistencia.execute("INSERT INTO asistencia (id_estudiante, fecha, lunes, martes, miércoles, jueves, viernes) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -1498,18 +1481,10 @@ def MATRIX():
             
             messagebox.showinfo("Asistencia Guardada", f"Asistencia para la fecha {fecha} guardada exitosamente.")
 
-        def ver_aspitas(self):
-            # Mostrar todas las aspitas en el Treeview
-            for item_id in self.treeview_estudiantes.get_children():
-                self.treeview_estudiantes.set(item_id, "#4", "✔","❌")
-                self.treeview_estudiantes.set(item_id, "#5", "✔","❌")
-                self.treeview_estudiantes.set(item_id, "#6", "✔","❌")
-                self.treeview_estudiantes.set(item_id, "#7", "✔","❌")
-                self.treeview_estudiantes.set(item_id, "#8", "✔","❌")
-
-        def consultar_asistencia(self):
-            grado = self.combo_grado.get()
+        def ver_asistencias(self):
+            # Obtener la fecha y grado seleccionados
             fecha = self.entry_fecha.get().strip()
+            grado = self.combo_grado.get()
 
             if not fecha:
                 messagebox.showerror("Error", "Ingrese una fecha válida (YYYY-MM-DD).")
@@ -1532,7 +1507,6 @@ def MATRIX():
                                         (estudiante_id, fecha))
                 asistencia = self.c_asistencia.fetchone()
 
-                # Insertar el estudiante y su asistencia en el Treeview
                 if asistencia:
                     lunes = "✔" if asistencia[0] else ""
                     martes = "✔" if asistencia[1] else ""
@@ -1543,6 +1517,57 @@ def MATRIX():
                     lunes = martes = miercoles = jueves = viernes = ""
 
                 self.treeview_estudiantes.insert("", "end", text=estudiante_id, values=(nombre, apellido, grado, lunes, martes, miercoles, jueves, viernes))
+
+        def ver_todas_asistencias_window(self):
+        # Crear una nueva ventana Toplevel para mostrar todas las asistencias
+            top = tk.Toplevel(self.root)
+            top.title("Todas las Asistencias Registradas")
+
+            # Configurar un nuevo Treeview en la ventana secundaria
+            tree = ttk.Treeview(top, columns=("Nombres", "Apellidos", "Grado", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes"))
+            tree.heading("#0", text="ID")
+            tree.heading("Nombres", text="Nombres")
+            tree.heading("Apellidos", text="Apellidos")
+            tree.heading("Grado", text="Grado")
+            tree.heading("Lunes", text="Lunes")
+            tree.heading("Martes", text="Martes")
+            tree.heading("Miércoles", text="Miércoles")
+            tree.heading("Jueves", text="Jueves")
+            tree.heading("Viernes", text="Viernes")
+            tree.column("#0", width=50)
+            tree.column("Nombres", width=150)
+            tree.column("Apellidos", width=150)
+            tree.column("Grado", width=100)
+            tree.column("Lunes", width=75)
+            tree.column("Martes", width=75)
+            tree.column("Miércoles", width=75)
+            tree.column("Jueves", width=75)
+            tree.column("Viernes", width=75)
+            tree.pack(padx=10, pady=10)
+
+            # Consultar la base de datos para obtener todas las asistencias registradas
+            self.c_asistencia.execute("SELECT id_estudiante, fecha, lunes, martes, miércoles, jueves, viernes FROM asistencia")
+            asistencias = self.c_asistencia.fetchall()
+
+            for asistencia in asistencias:
+                estudiante_id = asistencia[0]
+
+                # Consultar los datos del estudiante
+                self.c_matricula.execute("SELECT nombres, apellidos, grado_curso FROM matricula WHERE id = ?", (estudiante_id,))
+                estudiante = self.c_matricula.fetchone()
+
+                if estudiante:
+                    nombre = estudiante[0]
+                    apellido = estudiante[1]
+                    grado = estudiante[2]
+
+                    lunes = "✔" if asistencia[2] else ""
+                    martes = "✔" if asistencia[3] else ""
+                    miercoles = "✔" if asistencia[4] else ""
+                    jueves = "✔" if asistencia[5] else ""
+                    viernes = "✔" if asistencia[6] else ""
+
+                    tree.insert("", "end", text=estudiante_id, values=(nombre, apellido, grado, lunes, martes, miercoles, jueves, viernes))
 
         def obtener_grados(self):
             self.c_matricula.execute("SELECT DISTINCT grado_curso FROM matricula")
