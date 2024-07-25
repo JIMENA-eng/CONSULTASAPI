@@ -902,7 +902,10 @@ def ventana_administrador():
     matrixmenu=Menu(menubar, tearoff=0)
     matrixmenu.add_command(label="registar alumnos", command=MATRIX)
     menubar.add_cascade(label="registro alumnos", menu=matrixmenu)
-
+    
+    matrimenu=Menu(menubar, tearoff=0)
+    matrimenu.add_command(label="SEMESTRES")
+    menubar.add_cascade(label="matriculas", menu=matrixmenu)
 
     ayudamenu=Menu(menubar, tearoff=0)
     ayudamenu.add_command(label="resetear campos", command=limpiarCampos)
@@ -964,7 +967,7 @@ def MATRIX():
 
     # Desarrollo de la Interfaz grafica
     root=Tk()
-    root.title("Aplicación CRUD con Base de Datos")
+    root.title("REGISTROS DE ESTUDIANTES")
     root.geometry("600x350")
 
     miId=StringVar()
