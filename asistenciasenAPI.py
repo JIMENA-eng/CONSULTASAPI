@@ -812,33 +812,57 @@ def ventana_administrador():
             messagebox.showerror("ERROR", f"Error al borrar el registro: {error}")
 
     def buscar_por_dni():
-        dni = miDNI.get()
-        try:
-            # Conexión a la base de datos
-            miConexion = sqlite3.connect("asistencia.db")
-            miCursor = miConexion.cursor()
+        class RegistroEmpleadosGUI:
+            def __init__(self, root):
+                self.root = root
+                self.root.title("Registro de Empleados")
+
+                # Inicializar base de datos
+                self.conn = sqlite3.connect("asistencia.db")
+                self.c = self.conn.cursor()
+
+                # Crear widgets
+                self.label_dni = tk.Label(root, text="Ingrese DNI del Empleado:")
+                self.label_dni.grid(row=0, column=0, padx=10, pady=5)
+                self.entry_dni = tk.Entry(root)
+                self.entry_dni.grid(row=0, column=1, padx=10, pady=5)
+
+                self.btn_buscar = tk.Button(root, text="Buscar Empleado", command=self.buscar_empleado)
+                self.btn_buscar.grid(row=1, column=0, columnspan=2, padx=10, pady=10, sticky="WE")
+
+                self.resultado_text = tk.Text(root, height=10, width=50, wrap="word")
+                self.resultado_text.grid(row=2, column=0, columnspan=2, padx=10, pady=10)
+
+            def buscar_empleado(self):
+                dni = self.entry_dni.get()
+
+                if dni:
+                    self.c.execute("SELECT * FROM empleados WHERE DNI=?", (dni,))
+                    empleado = self.c.fetchone()
+                    if empleado:
+                        resultado = f"ID: {empleado[0]}\n"
+                        resultado += f"Nombres: {empleado[1]}\n"
+                        resultado += f"Apellido Paterno: {empleado[2]}\n"
+                        resultado += f"Apellido Materno: {empleado[3]}\n"
+                        resultado += f"DNI: {empleado[4]}\n"
+                        resultado += f"Género: {empleado[5]}\n"
+                        resultado += f"Estado Civil: {empleado[6]}\n"
+                        resultado += f"Fecha y Hora: {empleado[7]}"
+                    else:
+                        resultado = f"No se encontró ningún empleado con el DNI {dni}."
+                    self.resultado_text.delete(1.0, tk.END)  # Limpiar resultados anteriores
+                    self.resultado_text.insert(tk.END, resultado)
+                else:
+                    messagebox.showerror("Error", "Por favor, ingrese el DNI del empleado.")
+
+            def __del__(self):
+                self.conn.close()
+
+        if __name__ == "__main__":
+            root = tk.Tk()
+            app = RegistroEmpleadosGUI(root)
+            root.mainloop()
             
-            # Consulta para buscar registros por DNI
-            miCursor.execute("SELECT * FROM empleados WHERE DNI=?", (dni,))
-            registros = miCursor.fetchall()
-            
-            # Limpiar resultados anteriores en el Treeview
-            for row in tree.get_children():
-                tree.delete(row)
-            
-            # Mostrar resultados en el Treeview
-            if registros:
-                for registro in registros:
-                    tree.insert("", "end", text=registro[0], values=(registro[1], registro[2], registro[3], registro[4], registro[5], registro[6], registro[7]))
-            else:
-                messagebox.showinfo("Sin resultados", f"No se encontraron registros con el DNI {dni}.")
-        
-        except sqlite3.Error as error:
-            messagebox.showerror("Error", f"Error al buscar por DNI: {error}")
-        finally:
-            # Cerrar la conexión a la base de datos
-            if miConexion:
-                miConexion.close()
     def matriculas():
         class Curso:
             def __init__(self, nombre, codigo, grado):
@@ -999,8 +1023,8 @@ def ventana_administrador():
     menubar.add_cascade(label="subir archivos", menu=subirmenu)
     
     matrixmenu=Menu(menubar, tearoff=0)
-    matrixmenu.add_command(label="registar alumnos", command=MATRIX)
-    menubar.add_cascade(label="registro alumnos", menu=matrixmenu)
+    matrixmenu.add_command(label="ver", command=MATRIX)
+    menubar.add_cascade(label="asistencia", menu=matrixmenu)
     
     matrimenu=Menu(menubar, tearoff=0)
     matrimenu.add_command(label="SEMESTRES", command=matriculas)
@@ -1021,10 +1045,7 @@ def ventana_administrador():
      
     b2=Button(root, text="BUSCAR", command=buscar_por_dni)
     b2.place(x=800,y=10)
-    r2=Entry(root, width=10)
-    r2.place(x=900, y=10)
     
-
     l3=Label(root,text="APELLIDO PATERNO",bg='lightblue')
     l3.place(x=100,y=40)
     e3=Entry(root,textvariable=miApellidoPaterno, width=50)
