@@ -16,8 +16,7 @@ class AsistenciaGUI:
         # Inicializar base de datos de matrícula
         self.conn_matricula = sqlite3.connect('matricula.db')
         self.c_matricula = self.conn_matricula.cursor()
-        self.create_table_matricula()
-
+    
         # Inicializar base de datos de asistencia
         self.conn_asistencia = sqlite3.connect('asistencia.db')
         self.c_asistencia = self.conn_asistencia.cursor()
@@ -28,9 +27,6 @@ class AsistenciaGUI:
         self.label_grado.grid(row=0, column=0, padx=10, pady=5)
         self.combo_grado = ttk.Combobox(root, values=self.obtener_grados())
         self.combo_grado.grid(row=0, column=1, padx=10, pady=5)
-
-        self.btn_matricular = tk.Button(root, text="Matricular", command=self.matricular_estudiante)
-        self.btn_matricular.grid(row=1, column=0, columnspan=2, padx=10, pady=10, sticky="WE")
 
         self.btn_registrar_asistencia = tk.Button(root, text="Registrar Asistencia", command=self.registrar_asistencia)
         self.btn_registrar_asistencia.grid(row=2, column=0, columnspan=2, padx=10, pady=10, sticky="WE")
@@ -48,15 +44,6 @@ class AsistenciaGUI:
 
         self.cargar_estudiantes()
 
-    def create_table_matricula(self):
-        self.c_matricula.execute('''CREATE TABLE IF NOT EXISTS matricula (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            nombres TEXT NOT NULL,
-                            apellidos TEXT NOT NULL,
-                            grado_curso TEXT NOT NULL
-                            )''')
-        self.conn_matricula.commit()
-
     def create_table_asistencia(self):
         self.c_asistencia.execute('''CREATE TABLE IF NOT EXISTS asistencia (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,24 +53,6 @@ class AsistenciaGUI:
                             FOREIGN KEY (id_estudiante) REFERENCES matricula (id)
                             )''')
         self.conn_asistencia.commit()
-
-    def matricular_estudiante(self):
-        nombres = tk.simpledialog.askstring("Matrícula", "Ingrese los nombres del estudiante:")
-        apellidos = tk.simpledialog.askstring("Matrícula", "Ingrese los apellidos del estudiante:")
-        grado = self.combo_grado.get()
-
-        if nombres and apellidos and grado:
-            estudiante = Matricula(nombres, apellidos, grado)
-            try:
-                self.c_matricula.execute("INSERT INTO matricula (nombres, apellidos, grado_curso) VALUES (?, ?, ?)",
-                                        (estudiante.nombres, estudiante.apellidos, estudiante.grado_curso))
-                self.conn_matricula.commit()
-                messagebox.showinfo("Matrícula", f"Estudiante {estudiante.nombres} {estudiante.apellidos} matriculado en {estudiante.grado_curso}.")
-                self.cargar_estudiantes()
-            except sqlite3.Error as e:
-                messagebox.showerror("Error", f"Error al matricular estudiante: {e}")
-        else:
-            messagebox.showerror("Error", "Por favor, complete todos los campos.")
 
     def registrar_asistencia(self):
         seleccion = self.treeview_estudiantes.selection()
