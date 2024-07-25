@@ -28,9 +28,6 @@ class AsistenciaGUI:
         self.combo_grado = ttk.Combobox(root, values=self.obtener_grados())
         self.combo_grado.grid(row=0, column=1, padx=10, pady=5)
 
-        self.btn_registrar_asistencia = tk.Button(root, text="Registrar Asistencia", command=self.registrar_asistencia)
-        self.btn_registrar_asistencia.grid(row=2, column=0, columnspan=2, padx=10, pady=10, sticky="WE")
-
         # Crear las columnas para los días de la semana en el Treeview
         self.treeview_estudiantes = ttk.Treeview(root, columns=("Nombres", "Apellidos", "Grado", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes"))
         self.treeview_estudiantes.heading("#0", text="ID")
@@ -55,6 +52,9 @@ class AsistenciaGUI:
 
         self.cargar_estudiantes()
 
+        # Asignar evento de clic para marcar asistencia
+        self.treeview_estudiantes.bind("<Button-1>", self.marcar_asistencia)
+
     def create_table_asistencia(self):
         self.c_asistencia.execute('''CREATE TABLE IF NOT EXISTS asistencia (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -62,37 +62,39 @@ class AsistenciaGUI:
                             fecha TEXT,
                             lunes BOOLEAN,
                             martes BOOLEAN,
-                            miercoles BOOLEAN,
+                            miércoles BOOLEAN,
                             jueves BOOLEAN,
                             viernes BOOLEAN,
                             FOREIGN KEY (id_estudiante) REFERENCES matricula (id)
                             )''')
         self.conn_asistencia.commit()
 
-    def registrar_asistencia(self):
-        seleccion = self.treeview_estudiantes.selection()
-        if seleccion:
-            estudiante_id = self.treeview_estudiantes.item(seleccion)["text"]
+    def marcar_asistencia(self, event):
+        item_id = self.treeview_estudiantes.focus()
+        column_id = self.treeview_estudiantes.identify_column(event.x)
+        
+        # Verificar si la columna es una de las de los días de la semana
+        if column_id in ["#4", "#5", "#6", "#7", "#8"]:  # Columnas correspondientes a Lunes, Martes, Miércoles, Jueves, Viernes
+            # Obtener el día de la semana correspondiente
+            day = self.treeview_estudiantes.heading(column_id)["text"]
+            # Obtener el índice de la columna
+            column_index = self.treeview_estudiantes["columns"].index(day)
+            # Obtener el valor actual en la celda
+            current_value = self.treeview_estudiantes.item(item_id)["values"][column_index]
+            # Cambiar el valor actual
+            new_value = "✔" if current_value == "" else ""
+            # Actualizar el valor en el Treeview
+            self.treeview_estudiantes.set(item_id, column_id, new_value)
+
+            # Actualizar la base de datos
+            estudiante_id = self.treeview_estudiantes.item(item_id)["text"]
             fecha = "2024-07-26"  # Ejemplo de fecha (se puede obtener dinámicamente)
+            self.actualizar_asistencia(estudiante_id, day, new_value)
 
-            # Obtener estado de asistencia para cada día de la semana
-            asistencia = {
-                "lunes": self.treeview_estudiantes.item(seleccion)["values"][3] == "✔",
-                "martes": self.treeview_estudiantes.item(seleccion)["values"][4] == "✔",
-                "miercoles": self.treeview_estudiantes.item(seleccion)["values"][5] == "✔",
-                "jueves": self.treeview_estudiantes.item(seleccion)["values"][6] == "✔",
-                "viernes": self.treeview_estudiantes.item(seleccion)["values"][7] == "✔",
-            }
-
-            try:
-                self.c_asistencia.execute("INSERT INTO asistencia (id_estudiante, fecha, lunes, martes, miercoles, jueves, viernes) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                                        (estudiante_id, fecha, asistencia["lunes"], asistencia["martes"], asistencia["miercoles"], asistencia["jueves"], asistencia["viernes"]))
-                self.conn_asistencia.commit()
-                messagebox.showinfo("Registro de Asistencia", f"Asistencia registrada para estudiante ID {estudiante_id}.")
-            except sqlite3.Error as e:
-                messagebox.showerror("Error", f"Error al registrar asistencia: {e}")
-        else:
-            messagebox.showerror("Error", "Por favor, seleccione un estudiante.")
+    def actualizar_asistencia(self, estudiante_id, day, valor):
+        self.c_asistencia.execute(f"UPDATE asistencia SET {day.lower()} = ? WHERE id_estudiante = ? AND fecha = ?",
+                                  (valor == "✔", estudiante_id, "2024-07-26"))
+        self.conn_asistencia.commit()
 
     def obtener_grados(self):
         self.c_matricula.execute("SELECT DISTINCT grado_curso FROM matricula")
@@ -110,15 +112,15 @@ class AsistenciaGUI:
             grado = estudiante[3]
 
             # Obtener la asistencia del estudiante para la fecha actual
-            self.c_asistencia.execute("SELECT lunes, martes, miercoles, jueves, viernes FROM asistencia WHERE id_estudiante = ? AND fecha = ?",
+            self.c_asistencia.execute("SELECT lunes, martes, miércoles, jueves, viernes FROM asistencia WHERE id_estudiante = ? AND fecha = ?",
                                       (estudiante_id, "2024-07-26"))
             registro_asistencia = self.c_asistencia.fetchone()
             if registro_asistencia:
-                lunes = "✔" if registro_asistencia[0] else "❌"
-                martes = "✔" if registro_asistencia[1] else "❌"
-                miercoles = "✔" if registro_asistencia[2] else "❌"
-                jueves = "✔" if registro_asistencia[3] else "❌"
-                viernes = "✔" if registro_asistencia[4] else "❌"
+                lunes = "✔" if registro_asistencia[0] else ""
+                martes = "✔" if registro_asistencia[1] else ""
+                miercoles = "✔" if registro_asistencia[2] else ""
+                jueves = "✔" if registro_asistencia[3] else ""
+                viernes = "✔" if registro_asistencia[4] else ""
             else:
                 lunes = ""
                 martes = ""
