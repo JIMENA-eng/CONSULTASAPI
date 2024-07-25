@@ -1,95 +1,117 @@
 import tkinter as tk
 from tkinter import messagebox
 import sqlite3
-import random
 
-class RegistroLoginGUI:
+class Curso:
+    def __init__(self, nombre, codigo, grado):
+        self.nombre = nombre
+        self.codigo = codigo
+        self.grado = grado
+
+class RegistroCursosGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Registro e Inicio de Sesión")
+        self.root.title("Registro de Cursos")
 
-        # Inicializar base de datos
-        self.conn = sqlite3.connect('usuarios.db')
-        self.c = self.conn.cursor()
-        self.create_table()
+        # Inicializar base de datos de cursos
+        self.conn_cursos = sqlite3.connect('registro_cursos.db')
+        self.c_cursos = self.conn_cursos.cursor()
+        self.create_table_cursos()
 
-        # Variables de control
-        self.usuario_var = tk.StringVar()
-        self.correo_var = tk.StringVar()
+        # Inicializar base de datos de empleados
+        self.conn_empleados = sqlite3.connect('asistencia.db')
+        self.c_empleados = self.conn_empleados.cursor()
 
         # Crear widgets
-        self.label_usuario = tk.Label(root, text="Usuario:")
-        self.label_usuario.grid(row=0, column=0, padx=10, pady=5)
-        self.entry_usuario = tk.Entry(root, textvariable=self.usuario_var)
-        self.entry_usuario.grid(row=0, column=1, padx=10, pady=5)
+        self.label_dni = tk.Label(root, text="Ingrese DNI del Empleado:")
+        self.label_dni.grid(row=0, column=0, padx=10, pady=5)
+        self.entry_dni = tk.Entry(root)
+        self.entry_dni.grid(row=0, column=1, padx=10, pady=5)
 
-        self.label_correo = tk.Label(root, text="Correo Electrónico:")
-        self.label_correo.grid(row=1, column=0, padx=10, pady=5)
-        self.entry_correo = tk.Entry(root, textvariable=self.correo_var)
-        self.entry_correo.grid(row=1, column=1, padx=10, pady=5)
+        self.btn_buscar = tk.Button(root, text="Buscar Empleado", command=self.buscar_empleado)
+        self.btn_buscar.grid(row=1, column=0, columnspan=2, padx=10, pady=10, sticky="WE")
 
-        self.btn_registro = tk.Button(root, text="Registrarse", command=self.registrar_usuario)
-        self.btn_registro.grid(row=2, column=0, columnspan=2, padx=10, pady=10, sticky="WE")
+        self.label_nombre = tk.Label(root, text="Nombre del Curso:")
+        self.label_nombre.grid(row=2, column=0, padx=10, pady=5)
+        self.entry_nombre = tk.Entry(root)
+        self.entry_nombre.grid(row=2, column=1, padx=10, pady=5)
 
-        self.btn_login = tk.Button(root, text="Iniciar Sesión", command=self.iniciar_sesion)
-        self.btn_login.grid(row=3, column=0, columnspan=2, padx=10, pady=10, sticky="WE")
+        self.label_codigo = tk.Label(root, text="Código del Curso:")
+        self.label_codigo.grid(row=3, column=0, padx=10, pady=5)
+        self.entry_codigo = tk.Entry(root)
+        self.entry_codigo.grid(row=3, column=1, padx=10, pady=5)
 
-    def create_table(self):
-        self.c.execute('''CREATE TABLE IF NOT EXISTS usuarios (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            usuario TEXT NOT NULL UNIQUE,
-                            correo TEXT NOT NULL UNIQUE,
-                            contrasena TEXT NOT NULL
+        self.btn_agregar_curso = tk.Button(root, text="Agregar Curso", command=self.agregar_curso)
+        self.btn_agregar_curso.grid(row=4, column=0, columnspan=2, padx=10, pady=10, sticky="WE")
+
+        self.resultado_text = tk.Text(root, height=10, width=50, wrap="word")
+        self.resultado_text.grid(row=5, column=0, columnspan=2, padx=10, pady=10)
+
+    def create_table_cursos(self):
+        self.c_cursos.execute('''CREATE TABLE IF NOT EXISTS cursos (
+                            codigo TEXT PRIMARY KEY,
+                            nombre TEXT NOT NULL,
+                            grado TEXT NOT NULL
                             )''')
-        self.conn.commit()
+        self.conn_cursos.commit()
 
-    def generar_contrasena_unica(self):
-        # Generar una contraseña única de 6 dígitos
-        return str(random.randint(100000, 999999))
+    def buscar_empleado(self):
+        dni = self.entry_dni.get()
 
-    def registrar_usuario(self):
-        usuario = self.usuario_var.get().strip()
-        correo = self.correo_var.get().strip()
+        if dni:
+            self.c_empleados.execute("SELECT GENERO, ESTADO_CIVIL FROM empleados WHERE DNI=?", (dni,))
+            empleado = self.c_empleados.fetchone()
+            if empleado:
+                genero, estado_civil = empleado
+                self.mostrar_resultado(f"Empleado encontrado.\nGénero: {genero}\nEstado Civil: {estado_civil}")
+            else:
+                self.mostrar_resultado("No se encontró ningún empleado con el DNI especificado.")
+        else:
+            messagebox.showerror("Error", "Por favor, ingrese el DNI del empleado.")
 
-        if usuario and correo:
-            # Generar una contraseña única de 6 dígitos
-            contrasena_unica = self.generar_contrasena_unica()
+    def agregar_curso(self):
+        nombre = self.entry_nombre.get()
+        codigo = self.entry_codigo.get()
 
-            # Guardar la contraseña única en la base de datos (sin encriptar para este ejemplo)
-            try:
-                self.c.execute("INSERT INTO usuarios (usuario, correo, contrasena) VALUES (?, ?, ?)",
-                               (usuario, correo, contrasena_unica))
-                self.conn.commit()
-
-                messagebox.showinfo("Registro Exitoso", f"Usuario registrado correctamente.\nTu contraseña única es: {contrasena_unica}")
-                self.entry_usuario.delete(0, tk.END)
-                self.entry_correo.delete(0, tk.END)
-            except sqlite3.IntegrityError:
-                messagebox.showerror("Error", "El usuario o correo electrónico ya existe. Por favor, elija otro.")
+        if nombre and codigo:
+            grado = self.buscar_grado_empleado()
+            if grado:
+                curso = Curso(nombre, codigo, grado)
+                try:
+                    self.c_cursos.execute("INSERT INTO cursos (codigo, nombre, grado) VALUES (?, ?, ?)",
+                                        (curso.codigo, curso.nombre, curso.grado))
+                    self.conn_cursos.commit()
+                    messagebox.showinfo("Registro de Cursos", f"Curso {curso.nombre} registrado con éxito.")
+                    self.entry_nombre.delete(0, tk.END)
+                    self.entry_codigo.delete(0, tk.END)
+                except sqlite3.IntegrityError:
+                    messagebox.showerror("Error", "Ya existe un curso con el mismo código.")
+            else:
+                messagebox.showerror("Error", "No se encontró un empleado con el DNI especificado.")
         else:
             messagebox.showerror("Error", "Por favor, complete todos los campos.")
 
-    def iniciar_sesion(self):
-        usuario = self.usuario_var.get().strip()
-        contrasena = self.correo_var.get().strip()  # Utilizamos el campo de correo para ingresar la contraseña única
-
-        if usuario and contrasena:
-            # Verificar si el usuario y la contraseña coinciden en la base de datos
-            self.c.execute("SELECT contrasena FROM usuarios WHERE usuario=?", (usuario,))
-            resultado = self.c.fetchone()
-
-            if resultado and resultado[0] == contrasena:
-                messagebox.showinfo("Inicio de Sesión Exitoso", f"Bienvenido, {usuario}!")
+    def buscar_grado_empleado(self):
+        dni = self.entry_dni.get()
+        if dni:
+            self.c_empleados.execute("SELECT ESTADO_CIVIL FROM empleados WHERE DNI=?", (dni,))
+            empleado = self.c_empleados.fetchone()
+            if empleado:
+                return empleado[0]
             else:
-                messagebox.showerror("Error", "Usuario o contraseña incorrectos.")
+                return None
         else:
-            messagebox.showerror("Error", "Por favor, complete todos los campos correctamente.")
+            return None
+
+    def mostrar_resultado(self, resultado):
+        self.resultado_text.delete(1.0, tk.END)
+        self.resultado_text.insert(tk.END, resultado)
 
     def __del__(self):
-        self.conn.close()
+        self.conn_cursos.close()
+        self.conn_empleados.close()
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = RegistroLoginGUI(root)
+    app = RegistroCursosGUI(root)
     root.mainloop()
-
