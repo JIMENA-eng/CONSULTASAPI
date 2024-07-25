@@ -68,8 +68,14 @@ class RegistroCursosGUI:
         self.btn_buscar_grado = tk.Button(root, text="Buscar", command=self.buscar_cursos_por_grado)
         self.btn_buscar_grado.grid(row=7, column=0, columnspan=2, padx=10, pady=10, sticky="WE")
 
+        self.label_matricula = tk.Label(root, text="Matricular en Curso:")
+        self.label_matricula.grid(row=8, column=0, padx=10, pady=5)
+
+        self.btn_matricular = tk.Button(root, text="Matricular", command=self.matricular_empleado)
+        self.btn_matricular.grid(row=8, column=1, padx=10, pady=5)
+
         self.resultado_text = tk.Text(root, height=10, width=50, wrap="word")
-        self.resultado_text.grid(row=8, column=0, columnspan=2, padx=10, pady=10)
+        self.resultado_text.grid(row=9, column=0, columnspan=2, padx=10, pady=10)
 
     def create_table_cursos(self):
         self.c_cursos.execute('''CREATE TABLE IF NOT EXISTS cursos (
@@ -115,21 +121,6 @@ class RegistroCursosGUI:
                                     (curso.codigo, curso.nombre, curso.grado))
                 self.conn_cursos.commit()
                 messagebox.showinfo("Registro de Cursos", f"Curso {curso.nombre} registrado con éxito.")
-
-                # Obtener nombres y apellidos del empleado por DNI
-                dni = self.entry_dni.get()
-                self.c_empleados.execute("SELECT NOMBRES, APELLIDO_PATERNO, APELLIDO_MATERNO FROM empleados WHERE DNI=?", (dni,))
-                empleado = self.c_empleados.fetchone()
-                if empleado:
-                    nombres, apellido_paterno, apellido_materno = empleado
-                    matricula = Matricula(nombres, f"{apellido_paterno} {apellido_materno}", curso.codigo)
-                    self.c_matricula.execute("INSERT INTO matricula (nombres, apellidos, codigo_curso) VALUES (?, ?, ?)",
-                                            (matricula.nombres, matricula.apellidos, matricula.codigo_curso))
-                    self.conn_matricula.commit()
-                    messagebox.showinfo("Matrícula", f"Empleado matriculado en el curso {curso.nombre}.")
-                else:
-                    messagebox.showerror("Error", "No se encontró un empleado con el DNI especificado.")
-
                 self.entry_nombre.delete(0, tk.END)
                 self.entry_codigo.delete(0, tk.END)
                 self.entry_grado.delete(0, tk.END)
@@ -137,6 +128,29 @@ class RegistroCursosGUI:
                 messagebox.showerror("Error", "Ya existe un curso con el mismo código.")
         else:
             messagebox.showerror("Error", "Por favor, complete todos los campos.")
+
+    def matricular_empleado(self):
+        dni = self.entry_dni.get()
+        codigo_curso = self.entry_codigo.get()
+
+        if dni and codigo_curso:
+            # Buscar empleado por DNI
+            self.c_empleados.execute("SELECT NOMBRES, APELLIDO_PATERNO, APELLIDO_MATERNO FROM empleados WHERE DNI=?", (dni,))
+            empleado = self.c_empleados.fetchone()
+            if empleado:
+                nombres, apellido_paterno, apellido_materno = empleado
+                # Insertar matrícula en la tabla matricula
+                try:
+                    self.c_matricula.execute("INSERT INTO matricula (nombres, apellidos, codigo_curso) VALUES (?, ?, ?)",
+                                            (nombres, f"{apellido_paterno} {apellido_materno}", codigo_curso))
+                    self.conn_matricula.commit()
+                    messagebox.showinfo("Matrícula", f"Empleado matriculado en el curso {codigo_curso}.")
+                except sqlite3.IntegrityError:
+                    messagebox.showerror("Error", "El empleado ya está matriculado en este curso.")
+            else:
+                messagebox.showerror("Error", "No se encontró un empleado con el DNI especificado.")
+        else:
+            messagebox.showerror("Error", "Por favor, ingrese el DNI del empleado y el código del curso.")
 
     def buscar_cursos_por_grado(self):
         grado = self.entry_buscar_grado.get()
