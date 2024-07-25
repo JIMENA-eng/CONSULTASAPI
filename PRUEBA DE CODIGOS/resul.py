@@ -132,53 +132,13 @@ def asignar_cursos(id_estudiante, cursos_seleccionados):
     conn.commit()
     conn.close()
 
-# Función para obtener todos los estudiantes asignados por cursos
-def obtener_estudiantes_por_cursos():
-    conn = sqlite3.connect('escuela.db')
-    cursor = conn.cursor()
-
-    cursor.execute('''
-        SELECT estudiantes.id, estudiantes.NOMBRES, estudiantes.APELLIDO_PATERNO, cursos.NOMBRE
-        FROM estudiantes
-        INNER JOIN estudiantes_cursos ON estudiantes.id = estudiantes_cursos.id_estudiante
-        INNER JOIN cursos ON cursos.id = estudiantes_cursos.id_curso
-        ORDER BY cursos.NOMBRE, estudiantes.APELLIDO_PATERNO, estudiantes.NOMBRES
-    ''')
-
-    estudiantes_por_cursos = cursor.fetchall()
-
-    conn.close()
-
-    return estudiantes_por_cursos
-
-# Función para mostrar los estudiantes asignados por cursos
-def mostrar_estudiantes_asignados():
-    estudiantes_por_cursos = obtener_estudiantes_por_cursos()
-
-    if estudiantes_por_cursos:
-        texto = "Estudiantes asignados por cursos:\n\n"
-        curso_actual = None
-
-        for estudiante in estudiantes_por_cursos:
-            id_estudiante, nombres, apellido_paterno, nombre_curso = estudiante
-
-            if nombre_curso != curso_actual:
-                texto += f"Curso: {nombre_curso}\n"
-                curso_actual = nombre_curso
-
-            texto += f"  - {nombres} {apellido_paterno}\n"
-
-        messagebox.showinfo("Estudiantes por cursos", texto)
-    else:
-        messagebox.showinfo("Estudiantes por cursos", "No hay estudiantes asignados a cursos.")
-
 # Función para manejar la asignación de cursos desde la interfaz gráfica
 def asignar_curso():
     global lista_estudiantes, lista_cursos
 
     if lista_estudiantes and lista_cursos:
         estudiante_seleccionado = lista_estudiantes.get(tk.ACTIVE)
-        cursos_seleccionados = [lista_cursos.get(idx).split(':')[0] for idx in lista_cursos.curselection()]
+        cursos_seleccionados = [curso.split(':')[0] for curso in lista_cursos.curselection()]
 
         if estudiante_seleccionado and cursos_seleccionados:
             id_estudiante = estudiante_seleccionado.split(':')[0]
@@ -241,8 +201,8 @@ def mostrar_interfaz():
     scrollbar_estudiantes = tk.Scrollbar(frame, orient=tk.VERTICAL)
     scrollbar_estudiantes.pack(side=tk.RIGHT, fill=tk.Y)
 
-    lista_estudiantes = tk.Listbox(frame, yscrollcommand=scrollbar_estudiantes.set)
-    lista_estudiantes.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+    lista_estudiantes = tk.Listbox(frame, yscrollcommand=scrollbar_estudiantes.set, width=50, height=10)
+    lista_estudiantes.pack()
 
     for estudiante in estudiantes:
         id_estudiante, nombres, apellido_paterno = estudiante
@@ -252,14 +212,14 @@ def mostrar_interfaz():
     scrollbar_estudiantes.config(command=lista_estudiantes.yview)
 
     # Lista de cursos
-    label_cursos = tk.Label(frame, text="Cursos:")
+    label_cursos = tk.Label(frame, text="Cursos disponibles:")
     label_cursos.pack()
 
     scrollbar_cursos = tk.Scrollbar(frame, orient=tk.VERTICAL)
     scrollbar_cursos.pack(side=tk.RIGHT, fill=tk.Y)
 
-    lista_cursos = tk.Listbox(frame, yscrollcommand=scrollbar_cursos.set, selectmode=tk.MULTIPLE)
-    lista_cursos.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+    lista_cursos = tk.Listbox(frame, yscrollcommand=scrollbar_cursos.set, width=50, height=5, selectmode=tk.MULTIPLE)
+    lista_cursos.pack()
 
     for curso in cursos:
         id_curso, nombre_curso = curso
@@ -297,10 +257,6 @@ def mostrar_interfaz():
     # Botón para actualizar la lista de cursos
     boton_actualizar_cursos = tk.Button(root, text="Actualizar cursos", command=actualizar_lista_cursos)
     boton_actualizar_cursos.pack(pady=10)
-
-    # Botón para mostrar estudiantes asignados por cursos
-    boton_mostrar_estudiantes = tk.Button(root, text="Mostrar Estudiantes por Cursos", command=mostrar_estudiantes_asignados)
-    boton_mostrar_estudiantes.pack(pady=10)
 
     # Botón para salir
     boton_salir = tk.Button(root, text="Salir", command=root.quit)
