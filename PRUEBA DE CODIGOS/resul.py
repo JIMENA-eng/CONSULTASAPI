@@ -39,6 +39,7 @@ def crear_tablas():
         CREATE TABLE IF NOT EXISTS estudiantes_cursos (
             id_estudiante INTEGER,
             id_curso INTEGER,
+            grado TEXT,
             FOREIGN KEY (id_estudiante) REFERENCES estudiantes(id),
             FOREIGN KEY (id_curso) REFERENCES cursos(id),
             PRIMARY KEY (id_estudiante, id_curso)
@@ -102,7 +103,7 @@ def obtener_cursos_asignados(id_estudiante):
     cursor = conn.cursor()
 
     cursor.execute('''
-        SELECT cursos.id, cursos.NOMBRE
+        SELECT cursos.id, cursos.NOMBRE, estudiantes_cursos.grado
         FROM cursos
         INNER JOIN estudiantes_cursos ON cursos.id = estudiantes_cursos.id_curso
         WHERE estudiantes_cursos.id_estudiante = ?
@@ -114,20 +115,21 @@ def obtener_cursos_asignados(id_estudiante):
 
     return cursos_asignados
 
-# Función para asignar cursos a un estudiante
-def asignar_cursos(id_estudiante, cursos_seleccionados):
+# Función para asignar cursos a un estudiante con un grado específico
+def asignar_cursos(id_estudiante, cursos_seleccionados, grados_seleccionados):
     conn = sqlite3.connect('escuela.db')
     cursor = conn.cursor()
 
     # Eliminar todas las asignaciones previas del estudiante
     cursor.execute('DELETE FROM estudiantes_cursos WHERE id_estudiante = ?', (id_estudiante,))
 
-    # Insertar los nuevos cursos asignados
-    for id_curso in cursos_seleccionados:
+    # Insertar los nuevos cursos asignados con los grados correspondientes
+    for idx, id_curso in enumerate(cursos_seleccionados):
+        id_grado = grados_seleccionados[idx]
         cursor.execute('''
-            INSERT INTO estudiantes_cursos (id_estudiante, id_curso)
-            VALUES (?, ?)
-        ''', (id_estudiante, id_curso))
+            INSERT INTO estudiantes_cursos (id_estudiante, id_curso, grado)
+            VALUES (?, ?, ?)
+        ''', (id_estudiante, id_curso, id_grado))
 
     conn.commit()
     conn.close()
@@ -138,7 +140,7 @@ def obtener_estudiantes_por_cursos():
     cursor = conn.cursor()
 
     cursor.execute('''
-        SELECT estudiantes.id, estudiantes.NOMBRES, estudiantes.APELLIDO_PATERNO, cursos.NOMBRE
+        SELECT estudiantes.id, estudiantes.NOMBRES, estudiantes.APELLIDO_PATERNO, cursos.NOMBRE, estudiantes_cursos.grado
         FROM estudiantes
         INNER JOIN estudiantes_cursos ON estudiantes.id = estudiantes_cursos.id_estudiante
         INNER JOIN cursos ON cursos.id = estudiantes_cursos.id_curso
@@ -160,13 +162,13 @@ def mostrar_estudiantes_asignados():
         curso_actual = None
 
         for estudiante in estudiantes_por_cursos:
-            id_estudiante, nombres, apellido_paterno, nombre_curso = estudiante
+            id_estudiante, nombres, apellido_paterno, nombre_curso, grado = estudiante
 
             if nombre_curso != curso_actual:
                 texto += f"Curso: {nombre_curso}\n"
                 curso_actual = nombre_curso
 
-            texto += f"  - {nombres} {apellido_paterno}\n"
+            texto += f"  - {nombres} {apellido_paterno} (Grado: {grado})\n"
 
         messagebox.showinfo("Estudiantes por cursos", texto)
     else:
@@ -179,11 +181,12 @@ def asignar_curso():
     if lista_estudiantes and lista_cursos:
         estudiante_seleccionado = lista_estudiantes.get(tk.ACTIVE)
         cursos_seleccionados = [lista_cursos.get(idx).split(':')[0] for idx in lista_cursos.curselection()]
+        grados_seleccionados = [grados_combo[idx].get() for idx in lista_cursos.curselection()]
 
         if estudiante_seleccionado and cursos_seleccionados:
             id_estudiante = estudiante_seleccionado.split(':')[0]
 
-            asignar_cursos(id_estudiante, cursos_seleccionados)
+            asignar_cursos(id_estudiante, cursos_seleccionados, grados_seleccionados)
 
             messagebox.showinfo("Asignación de cursos", "Cursos asignados correctamente al estudiante.")
         else:
@@ -220,7 +223,7 @@ def actualizar_lista_cursos():
 
 # Función para mostrar la interfaz gráfica
 def mostrar_interfaz():
-    global lista_estudiantes, lista_cursos
+    global lista_estudiantes, lista_cursos, grados_combo
 
     root = tk.Tk()
     root.title("Asignación de Estudiantes a Cursos")
@@ -251,7 +254,7 @@ def mostrar_interfaz():
 
     scrollbar_estudiantes.config(command=lista_estudiantes.yview)
 
-    # Lista de cursos
+    # Lista de cursos con grados
     label_cursos = tk.Label(frame, text="Cursos:")
     label_cursos.pack()
 
@@ -261,10 +264,27 @@ def mostrar_interfaz():
     lista_cursos = tk.Listbox(frame, yscrollcommand=scrollbar_cursos.set, selectmode=tk.MULTIPLE)
     lista_cursos.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
+    grados_combo = []
+
     for curso in cursos:
         id_curso, nombre_curso = curso
         texto_curso = f"{id_curso}: {nombre_curso}"
         lista_cursos.insert(tk.END, texto_curso)
+
+        # Agregar combobox para seleccionar el grado
+        frame_grado = tk.Frame(root)
+        frame_grado.pack()
+
+        label_grado = tk.Label(frame_grado, text="Grado:")
+        label_grado.pack(side=tk.LEFT)
+
+        grados = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
+        combo_grado = tk.StringVar()
+        combo_grado.set("I")  # Establecer el grado por defecto
+        combo = tk.OptionMenu(frame_grado, combo_grado, *grados)
+        combo.pack(side=tk.LEFT)
+
+        grados_combo.append(combo_grado)
 
     scrollbar_cursos.config(command=lista_cursos.yview)
 
