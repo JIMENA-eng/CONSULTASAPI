@@ -43,7 +43,7 @@ class AsistenciaGUI:
         self.btn_ver_asistencias.grid(row=1, column=2, padx=10, pady=5)
 
         # Treeview para mostrar resultados
-        columns = ("Fecha", "Nombres", "Apellidos", "Grado", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Días Asistidos")
+        columns = ("Fecha", "Nombres", "Apellidos", "Grado", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes")
         self.treeview_estudiantes = ttk.Treeview(self.root, columns=columns, show='headings')
         for col in columns:
             self.treeview_estudiantes.heading(col, text=col)
@@ -117,7 +117,7 @@ class AsistenciaGUI:
             else:
                 lunes = martes = miercoles = jueves = viernes = "No asistió"
 
-            self.treeview_estudiantes.insert("", "end", values=(fecha, nombre, apellido, grado, lunes, martes, miercoles, jueves, viernes, 0))
+            self.treeview_estudiantes.insert("", "end", values=(fecha, nombre, apellido, grado, lunes, martes, miercoles, jueves, viernes))
 
     def guardar_asistencia(self):
         fecha = self.entry_fecha.get().strip()
@@ -190,15 +190,14 @@ class AsistenciaGUI:
                 for asistencia in asistencias:
                     fecha, lunes, martes, miercoles, jueves, viernes = asistencia
 
-                    dias_asistidos = sum([lunes, martes, miercoles, jueves, viernes])
-                    
+                    # Convertir booleanos a texto
                     lunes = "Asistió" if lunes else "No asistió"
                     martes = "Asistió" if martes else "No asistió"
                     miercoles = "Asistió" if miercoles else "No asistió"
                     jueves = "Asistió" if jueves else "No asistió"
                     viernes = "Asistió" if viernes else "No asistió"
 
-                    tree.insert("", "end", values=(f"{nombre} {apellido}", fecha, lunes, martes, miercoles, jueves, viernes, dias_asistidos))
+                    tree.insert("", "end", values=(f"{nombre} {apellido}", fecha, lunes, martes, miercoles, jueves, viernes))
 
         # Crear ventana secundaria para buscar todas las asistencias
         ventana_todas_asistencias = tk.Toplevel(self.root)
@@ -225,7 +224,7 @@ class AsistenciaGUI:
         btn_buscar.grid(row=2, columnspan=2, pady=10)
 
         # Crear el árbol para mostrar resultados
-        columns = ("Nombre", "Fecha", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Días Asistidos")
+        columns = ("Nombre", "Fecha", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes")
         tree = ttk.Treeview(ventana_todas_asistencias, columns=columns, show='headings')
         for col in columns:
             tree.heading(col, text=col)
