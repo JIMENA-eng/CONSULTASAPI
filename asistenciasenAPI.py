@@ -57,13 +57,14 @@ def inicio_usuario():
             self.root.title("Registro e Inicio de Sesión")
 
             # Inicializar base de datos
-            self.conn = sqlite3.connect('usuarios.db')
+            self.conn = sqlite3.connect('usuarios.bd')
             self.c = self.conn.cursor()
             self.create_table()
 
             # Variables de control
             self.usuario_var = tk.StringVar()
             self.correo_var = tk.StringVar()
+            self.grado_var = tk.StringVar()
 
             # Crear widgets
             self.label_usuario = tk.Label(root, text="Usuario:")
@@ -76,17 +77,23 @@ def inicio_usuario():
             self.entry_correo = tk.Entry(root, textvariable=self.correo_var)
             self.entry_correo.grid(row=1, column=1, padx=10, pady=5)
 
+            self.label_grado = tk.Label(root, text="Grado a Enseñar:")
+            self.label_grado.grid(row=2, column=0, padx=10, pady=5)
+            self.entry_grado = tk.Entry(root, textvariable=self.grado_var)
+            self.entry_grado.grid(row=2, column=1, padx=10, pady=5)
+
             self.btn_registro = tk.Button(root, text="Registrarse", command=self.registrar_usuario)
-            self.btn_registro.grid(row=2, column=0, columnspan=2, padx=10, pady=10, sticky="WE")
+            self.btn_registro.grid(row=3, column=0, columnspan=2, padx=10, pady=10, sticky="WE")
 
             self.btn_login = tk.Button(root, text="Iniciar Sesión", command=self.iniciar_sesion)
-            self.btn_login.grid(row=3, column=0, columnspan=2, padx=10, pady=10, sticky="WE")
+            self.btn_login.grid(row=4, column=0, columnspan=2, padx=10, pady=10, sticky="WE")
 
         def create_table(self):
             self.c.execute('''CREATE TABLE IF NOT EXISTS usuarios (
                                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                                 usuario TEXT NOT NULL UNIQUE,
                                 correo TEXT NOT NULL UNIQUE,
+                                grado TEXT NOT NULL,
                                 contrasena TEXT NOT NULL
                                 )''')
             self.conn.commit()
@@ -98,20 +105,22 @@ def inicio_usuario():
         def registrar_usuario(self):
             usuario = self.usuario_var.get().strip()
             correo = self.correo_var.get().strip()
+            grado = self.grado_var.get().strip()
 
-            if usuario and correo:
+            if usuario and correo and grado:
                 # Generar una contraseña única de 6 dígitos
                 contrasena_unica = self.generar_contrasena_unica()
 
                 # Guardar la contraseña única en la base de datos (sin encriptar para este ejemplo)
                 try:
-                    self.c.execute("INSERT INTO usuarios (usuario, correo, contrasena) VALUES (?, ?, ?)",
-                                (usuario, correo, contrasena_unica))
+                    self.c.execute("INSERT INTO usuarios (usuario, correo, grado, contrasena) VALUES (?, ?, ?, ?)",
+                                (usuario, correo, grado, contrasena_unica))
                     self.conn.commit()
 
                     messagebox.showinfo("Registro Exitoso", f"Usuario registrado correctamente.\nTu contraseña única es: {contrasena_unica}")
                     self.entry_usuario.delete(0, tk.END)
                     self.entry_correo.delete(0, tk.END)
+                    self.entry_grado.delete(0, tk.END)
                 except sqlite3.IntegrityError:
                     messagebox.showerror("Error", "El usuario o correo electrónico ya existe. Por favor, elija otro.")
             else:
@@ -128,7 +137,8 @@ def inicio_usuario():
 
                 if resultado and resultado[0] == contrasena:
                     messagebox.showinfo("Inicio de Sesión Exitoso", f"Bienvenido, {usuario}!")
-                    MATRIX()
+                    # Aquí deberías reemplazar MATRIX() con la función o clase que maneja el acceso tras el inicio de sesión
+                    # MATRIX()
                 else:
                     messagebox.showerror("Error", "Usuario o contraseña incorrectos.")
             else:
@@ -141,6 +151,7 @@ def inicio_usuario():
         root = tk.Tk()
         app = RegistroLoginGUI(root)
         root.mainloop()
+
 
 top=Tk()
 top.title('seleciona tipo de usuario' )

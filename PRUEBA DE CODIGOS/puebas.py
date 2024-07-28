@@ -1,129 +1,105 @@
 import tkinter as tk
-from tkinter import ttk
 from tkinter import messagebox
 import sqlite3
+import random
 
-def setup_databases():
-    # Crear o modificar la base de datos de asistencia
-    conn_asistencia = sqlite3.connect('asistencia.db')
-    cursor_asistencia = conn_asistencia.cursor()
-    
-    # Crear tabla de asistencia si no existe
-    cursor_asistencia.execute('''CREATE TABLE IF NOT EXISTS asistencia (
-                                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                id_estudiante INTEGER,
-                                fecha TEXT,
-                                lunes BOOLEAN,
-                                martes BOOLEAN,
-                                miércoles BOOLEAN,
-                                jueves BOOLEAN,
-                                viernes BOOLEAN,
-                                FOREIGN KEY (id_estudiante) REFERENCES matricula (id)
-                                )''')
+class RegistroLoginGUI:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Registro e Inicio de Sesión")
 
-    # Agregar columna 'nota' a la tabla de asistencia si no existe
-    try:
-        cursor_asistencia.execute("ALTER TABLE asistencia ADD COLUMN nota TEXT")
-    except sqlite3.OperationalError:
-        pass  # La columna ya existe o no se puede agregar
+        # Inicializar base de datos
+        self.conn = sqlite3.connect('usuarios.db')
+        self.c = self.conn.cursor()
+        self.create_table()
 
-    conn_asistencia.commit()
-    conn_asistencia.close()
-    
-    # Crear tabla de matricula si no existe en la base de datos matriculas
-    conn_matriculas = sqlite3.connect('matriculas.db')
-    cursor_matriculas = conn_matriculas.cursor()
-    
-    cursor_matriculas.execute('''CREATE TABLE IF NOT EXISTS matricula (
-                                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                nombre TEXT,
-                                grado TEXT
-                                )''')
-    
-    conn_matriculas.commit()
-    conn_matriculas.close()
+        # Variables de control
+        self.usuario_var = tk.StringVar()
+        self.correo_var = tk.StringVar()
+        self.grado_var = tk.StringVar()
 
-def buscar_asistencias(grado):
-    if not grado:
-        messagebox.showerror("Error", "Por favor, ingrese un grado.")
-        return
-    
-    conn_asistencia = sqlite3.connect('asistencia.db')
-    cursor_asistencia = conn_asistencia.cursor()
-    
-    conn_matriculas = sqlite3.connect('matriculas.db')
-    cursor_matriculas = conn_matriculas.cursor()
-    
-    # Obtener IDs de estudiantes en el grado dado
-    cursor_matriculas.execute("SELECT id FROM matricula WHERE grado = ?", (grado,))
-    ids_estudiantes = cursor_matriculas.fetchall()
-    
-    if not ids_estudiantes:
-        messagebox.showinfo("Resultado", "No se encontraron estudiantes en este grado.")
-        conn_asistencia.close()
-        conn_matriculas.close()
-        return
-    
-    ids_estudiantes = [id[0] for id in ids_estudiantes]
-    placeholder = ','.join('?' * len(ids_estudiantes))
-    
-    # Obtener asistencias para los IDs de estudiantes
-    query = f'''
-    SELECT m.nombre, a.fecha, a.lunes, a.martes, a.miércoles, a.jueves, a.viernes
-    FROM asistencia a
-    JOIN matricula m ON a.id_estudiante = m.id
-    WHERE a.id_estudiante IN ({placeholder})
-    '''
-    
-    cursor_asistencia.execute(query, ids_estudiantes)
-    resultados = cursor_asistencia.fetchall()
-    
-    conn_asistencia.close()
-    conn_matriculas.close()
-    
-    # Limpiar el árbol
-    for item in tree.get_children():
-        tree.delete(item)
-    
-    # Insertar resultados en el árbol
-    for resultado in resultados:
-        nombre, fecha, lunes, martes, miercoles, jueves, viernes = resultado
-        tree.insert("", tk.END, values=(nombre, fecha, "Sí" if lunes else "No", "Sí" if martes else "No", 
-                                        "Sí" if miercoles else "No", "Sí" if jueves else "No", 
-                                        "Sí" if viernes else "No"))
+        # Crear widgets
+        self.label_usuario = tk.Label(root, text="Usuario:")
+        self.label_usuario.grid(row=0, column=0, padx=10, pady=5)
+        self.entry_usuario = tk.Entry(root, textvariable=self.usuario_var)
+        self.entry_usuario.grid(row=0, column=1, padx=10, pady=5)
 
-# Crear la ventana principal
-root = tk.Tk()
-root.title("Buscar Asistencias por Grado")
+        self.label_correo = tk.Label(root, text="Correo Electrónico:")
+        self.label_correo.grid(row=1, column=0, padx=10, pady=5)
+        self.entry_correo = tk.Entry(root, textvariable=self.correo_var)
+        self.entry_correo.grid(row=1, column=1, padx=10, pady=5)
 
-# Configuración inicial de la base de datos
-setup_databases()
+        self.label_grado = tk.Label(root, text="Grado a Enseñar:")
+        self.label_grado.grid(row=2, column=0, padx=10, pady=5)
+        self.entry_grado = tk.Entry(root, textvariable=self.grado_var)
+        self.entry_grado.grid(row=2, column=1, padx=10, pady=5)
 
-# Crear un frame para la entrada
-frame_entrada = tk.Frame(root)
-frame_entrada.pack(padx=10, pady=10)
+        self.btn_registro = tk.Button(root, text="Registrarse", command=self.registrar_usuario)
+        self.btn_registro.grid(row=3, column=0, columnspan=2, padx=10, pady=10, sticky="WE")
 
-# Etiqueta y entrada para el grado
-label_grado = tk.Label(frame_entrada, text="Grado:")
-label_grado.grid(row=0, column=0, padx=5, pady=5)
-entry_grado = tk.Entry(frame_entrada)
-entry_grado.grid(row=0, column=1, padx=5, pady=5)
+        self.btn_login = tk.Button(root, text="Iniciar Sesión", command=self.iniciar_sesion)
+        self.btn_login.grid(row=4, column=0, columnspan=2, padx=10, pady=10, sticky="WE")
 
-# Botón para buscar
-btn_buscar = tk.Button(frame_entrada, text="Buscar", command=lambda: buscar_asistencias(entry_grado.get()))
-btn_buscar.grid(row=1, columnspan=2, pady=10)
+    def create_table(self):
+        self.c.execute('''CREATE TABLE IF NOT EXISTS usuarios (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            usuario TEXT NOT NULL UNIQUE,
+                            correo TEXT NOT NULL UNIQUE,
+                            grado TEXT NOT NULL,
+                            contrasena TEXT NOT NULL
+                            )''')
+        self.conn.commit()
 
-# Crear el árbol para mostrar resultados
-columns = ("Nombre", "Fecha", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes")
-tree = ttk.Treeview(root, columns=columns, show='headings')
-tree.heading("Nombre", text="Nombre")
-tree.heading("Fecha", text="Fecha")
-tree.heading("Lunes", text="Lunes")
-tree.heading("Martes", text="Martes")
-tree.heading("Miércoles", text="Miércoles")
-tree.heading("Jueves", text="Jueves")
-tree.heading("Viernes", text="Viernes")
-tree.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+    def generar_contrasena_unica(self):
+        # Generar una contraseña única de 6 dígitos
+        return str(random.randint(100000, 999999))
 
-# Ejecutar la aplicación
-root.mainloop()
+    def registrar_usuario(self):
+        usuario = self.usuario_var.get().strip()
+        correo = self.correo_var.get().strip()
+        grado = self.grado_var.get().strip()
+
+        if usuario and correo and grado:
+            # Generar una contraseña única de 6 dígitos
+            contrasena_unica = self.generar_contrasena_unica()
+
+            # Guardar la contraseña única en la base de datos (sin encriptar para este ejemplo)
+            try:
+                self.c.execute("INSERT INTO usuarios (usuario, correo, grado, contrasena) VALUES (?, ?, ?, ?)",
+                            (usuario, correo, grado, contrasena_unica))
+                self.conn.commit()
+
+                messagebox.showinfo("Registro Exitoso", f"Usuario registrado correctamente.\nTu contraseña única es: {contrasena_unica}")
+                self.entry_usuario.delete(0, tk.END)
+                self.entry_correo.delete(0, tk.END)
+                self.entry_grado.delete(0, tk.END)
+            except sqlite3.IntegrityError:
+                messagebox.showerror("Error", "El usuario o correo electrónico ya existe. Por favor, elija otro.")
+        else:
+            messagebox.showerror("Error", "Por favor, complete todos los campos.")
+
+    def iniciar_sesion(self):
+        usuario = self.usuario_var.get().strip()
+        contrasena = self.correo_var.get().strip()  # Utilizamos el campo de correo para ingresar la contraseña única
+
+        if usuario and contrasena:
+            # Verificar si el usuario y la contraseña coinciden en la base de datos
+            self.c.execute("SELECT contrasena FROM usuarios WHERE usuario=?", (usuario,))
+            resultado = self.c.fetchone()
+
+            if resultado and resultado[0] == contrasena:
+                messagebox.showinfo("Inicio de Sesión Exitoso", f"Bienvenido, {usuario}!")
+                # Aquí deberías reemplazar MATRIX() con la función o clase que maneja el acceso tras el inicio de sesión
+                # MATRIX()
+            else:
+                messagebox.showerror("Error", "Usuario o contraseña incorrectos.")
+        else:
+            messagebox.showerror("Error", "Por favor, complete todos los campos correctamente.")
+
+    def __del__(self):
+        self.conn.close()
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = RegistroLoginGUI(root)
+    root.mainloop()
