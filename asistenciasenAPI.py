@@ -88,15 +88,7 @@ def inicio_usuario():
             self.btn_login = tk.Button(root, text="Iniciar Sesión", command=self.iniciar_sesion)
             self.btn_login.grid(row=4, column=0, columnspan=2, padx=10, pady=10, sticky="WE")
 
-        def create_table(self):
-            self.c.execute('''CREATE TABLE IF NOT EXISTS usuarios (
-                                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                usuario TEXT NOT NULL UNIQUE,
-                                correo TEXT NOT NULL UNIQUE,
-                                grado TEXT NOT NULL,
-                                contrasena TEXT NOT NULL
-                                )''')
-            self.conn.commit()
+        99
 
         def generar_contrasena_unica(self):
             # Generar una contraseña única de 6 dígitos
@@ -1534,9 +1526,9 @@ def MATRIX_ADMIN():
 
 def MATRIX_DOCENTE():
     class AsistenciaGUI:
-        def __init__(self, root, grado):
+        def __init__(self, root, grado_usuario):
             self.root = root
-            self.grado = grado
+            self.grado_usuario = grado_usuario
             self.root.title("Registro de Asistencia por Grado")
 
             # Inicializar base de datos de matrícula y asistencia
@@ -1551,14 +1543,11 @@ def MATRIX_DOCENTE():
             self.create_widgets()
             self.populate_grado_combobox()
 
-            # Mostrar el grado actual en la interfaz
-            self.combo_grado.set(self.grado)
-
         def create_widgets(self):
             # Etiqueta y combo para seleccionar grado
             self.label_grado = tk.Label(self.root, text="Seleccionar Grado:")
             self.label_grado.grid(row=0, column=0, padx=10, pady=5)
-            self.combo_grado = ttk.Combobox(self.root, state="disabled")
+            self.combo_grado = ttk.Combobox(self.root)
             self.combo_grado.grid(row=0, column=1, padx=10, pady=5)
 
             # Etiqueta y entrada para la fecha
@@ -1606,9 +1595,13 @@ def MATRIX_DOCENTE():
             self.conn_asistencia.commit()
 
         def populate_grado_combobox(self):
-            # Opcional: Población del combobox con grados disponibles
-            # Aquí no se necesita porque el grado es fijo
-            pass
+            grados = self.obtener_grados()
+            self.combo_grado['values'] = grados
+
+        def obtener_grados(self):
+            self.c_matricula.execute("SELECT DISTINCT grado_curso FROM matricula")
+            grados = [row[0] for row in self.c_matricula.fetchall()]
+            return grados
 
         def ver_asistencias(self):
             fecha = self.entry_fecha.get().strip()
@@ -1618,11 +1611,15 @@ def MATRIX_DOCENTE():
                 messagebox.showerror("Error", "Ingrese una fecha válida (YYYY-MM-DD).")
                 return
 
+            if grado != self.grado_usuario:
+                messagebox.showerror("Error", "No tiene permiso para ver asistencias de este grado.")
+                return
+
             # Limpiar el Treeview antes de cargar nuevos datos
             self.treeview_estudiantes.delete(*self.treeview_estudiantes.get_children())
 
             # Consultar la base de datos para obtener los estudiantes y su asistencia
-            self.c_matricula.execute("SELECT id, nombres, apellidos FROM matricula WHERE grado_curso = ?", (self.grado,))
+            self.c_matricula.execute("SELECT id, nombres, apellidos FROM matricula WHERE grado_curso = ?", (grado,))
             estudiantes = self.c_matricula.fetchall()
 
             for estudiante in estudiantes:
@@ -1642,7 +1639,7 @@ def MATRIX_DOCENTE():
                 else:
                     lunes = martes = miercoles = jueves = viernes = "No asistió"
 
-                self.treeview_estudiantes.insert("", "end", values=(fecha, nombre, apellido, self.grado, lunes, martes, miercoles, jueves, viernes))
+                self.treeview_estudiantes.insert("", "end", values=(fecha, nombre, apellido, grado, lunes, martes, miercoles, jueves, viernes))
 
         def guardar_asistencia(self):
             fecha = self.entry_fecha.get().strip()
@@ -1687,25 +1684,15 @@ def MATRIX_DOCENTE():
 
         def ver_todas_asistencias(self):
             def obtener_asistencias():
-                grado = entry_grado.get().strip()
-                nombre_buscar = entry_nombre.get().strip()
-                
-                if not grado:
-                    messagebox.showerror("Error", "Ingrese un grado válido.")
-                    return
-
                 # Limpiar el Treeview antes de cargar nuevos datos
                 tree.delete(*tree.get_children())
 
-                # Consultar la base de datos para obtener todos los estudiantes en el grado seleccionado
-                self.c_matricula.execute("SELECT id, nombres, apellidos FROM matricula WHERE grado_curso = ?", (grado,))
+                # Consultar la base de datos para obtener todos los estudiantes en el grado del usuario
+                self.c_matricula.execute("SELECT id, nombres, apellidos FROM matricula WHERE grado_curso = ?", (self.grado_usuario,))
                 estudiantes = self.c_matricula.fetchall()
 
                 for estudiante in estudiantes:
                     estudiante_id, nombre, apellido = estudiante
-
-                    if nombre_buscar.lower() not in nombre.lower():
-                        continue
 
                     # Obtener todas las asistencias del estudiante
                     self.c_asistencia.execute("SELECT fecha, lunes, martes, miércoles, jueves, viernes FROM asistencia WHERE id_estudiante = ?",
@@ -1732,22 +1719,6 @@ def MATRIX_DOCENTE():
             frame_entrada = tk.Frame(ventana_todas_asistencias)
             frame_entrada.pack(padx=10, pady=10)
 
-            # Etiqueta y entrada para el grado
-            label_grado = tk.Label(frame_entrada, text="Grado:")
-            label_grado.grid(row=0, column=0, padx=5, pady=5)
-            entry_grado = tk.Entry(frame_entrada)
-            entry_grado.grid(row=0, column=1, padx=5, pady=5)
-
-            # Etiqueta y entrada para el nombre
-            label_nombre = tk.Label(frame_entrada, text="Nombre:")
-            label_nombre.grid(row=1, column=0, padx=5, pady=5)
-            entry_nombre = tk.Entry(frame_entrada)
-            entry_nombre.grid(row=1, column=1, padx=5, pady=5)
-
-            # Botón para buscar
-            btn_buscar = tk.Button(frame_entrada, text="Buscar", command=obtener_asistencias)
-            btn_buscar.grid(row=2, columnspan=2, pady=10)
-
             # Crear el árbol para mostrar resultados
             columns = ("Nombre", "Fecha", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes")
             tree = ttk.Treeview(ventana_todas_asistencias, columns=columns, show='headings')
@@ -1756,14 +1727,34 @@ def MATRIX_DOCENTE():
                 tree.column(col, width=100)
             tree.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
 
+            # Cargar las asistencias al abrir la ventana
+            obtener_asistencias()
+
         def __del__(self):
             self.conn_matricula.close()
             self.conn_asistencia.close()
 
+    def obtener_grado_usuario(usuario):
+        conn = sqlite3.connect('usuarios.bd')
+        c = conn.cursor()
+        c.execute("SELECT grado FROM usuarios WHERE usuarios = ?", (usuario,))
+        resultado = c.fetchone()
+        conn.close()
+        if resultado:
+            return resultado[0]
+        else:
+            raise ValueError("Usuario no encontrado")
+
     if __name__ == "__main__":
         root = tk.Tk()
-        app = AsistenciaGUI(root, grado="2")  # Cambia el grado según sea necesario
+        
+        # Aquí debes obtener el nombre del usuario que está iniciando sesión
+        usuario_actual = "nombre_usuario"  # Cambia esto por el nombre del usuario real
+        grado_usuario = obtener_grado_usuario(usuario_actual)
+
+        app = AsistenciaGUI(root, grado_usuario)
         root.mainloop()
+
 
 
 
